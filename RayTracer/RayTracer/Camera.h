@@ -13,7 +13,7 @@ public:
 		lookAtTargetPos = _lookAt;
 		lookDirection = (lookAtTargetPos - position).normalize();
 
-		camRight = lookDirection % up;
+		camRight = lookDirection % up; //% == cross product override
 	}
 
 	Vector3 position;

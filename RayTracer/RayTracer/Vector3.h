@@ -89,7 +89,7 @@ public:
 		return *this;
 	}
 
-	Vector3 mult(const Vector3 &b) const 
+	Vector3 multiplyBy(const Vector3 &b) const 
 	{ 
 		return Vector3(x*b.x, y*b.y, z*b.z); 
 	}

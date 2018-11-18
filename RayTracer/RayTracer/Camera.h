@@ -1,17 +1,25 @@
 #pragma once
-#include "Object.h"
-#include "Ray.h"
+#include "Vector3.h"
 
-class Camera : public Object
+
+class Camera
 {
 public:
-	Camera();
-	~Camera();
-	Camera(Vector3 _position, Vector3 _lookAt) { transform.position = _position; lookAt = _lookAt; }
+	Camera() = default;
+	~Camera() = default;
+	Camera(Vector3 _position, Vector3 _lookAt)
+	{
+		position = _position;
+		lookAtTargetPos = _lookAt;
+		lookDirection = (lookAtTargetPos - position).normalize();
 
-	Vector3 GetLookAt() const { return lookAt; }
+		camRight = lookDirection % up;
+	}
 
-private:
-	Vector3 lookAt;
+	Vector3 position;
+	Vector3 up = { 0,1,0 };
+	Vector3 camRight;
+
+	Vector3 lookAtTargetPos;
+	Vector3 lookDirection;
 };
-

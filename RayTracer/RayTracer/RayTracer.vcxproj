@@ -118,6 +118,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="LightSource.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="Random.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="Transform.h" />
@@ -128,6 +129,7 @@
     <ClCompile Include="LightSource.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="Random.cpp" />
     <ClCompile Include="Ray.cpp" />
     <ClCompile Include="Sphere.cpp" />
     <ClCompile Include="Transform.cpp" />

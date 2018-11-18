@@ -1,30 +1,22 @@
 #include "Sphere.h"
-#include <cmath>
 
-bool Sphere::isHit(Ray _ray, float & t)
+double Sphere::intersect(const Ray & r) const
 {
-	Vector3 origin = _ray.GetOrigin();
-	Vector3 direction = _ray.GetDirection();
+	// returns distance, 0 if nohit 
+	Vector3 op = position - r.GetOrigin(); // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0 
 
-	Vector3 rayToCentre = origin - transform.position;
+	double t;
+	double eps = 1e-4;
+	double b = op.dot(r.GetDirection());
+	double det = b * b - op.dot(op) + rad * rad;
 
-	float b = 2 * Vector3::dot(rayToCentre, direction);
-	float c = Vector3::dot(rayToCentre, rayToCentre) - radius * radius;
-
-	float disc = b * b - 4 * c;
-
-	if(disc < 0)
+	if(det < 0)
 	{
-		return false;
+		return 0;
 	}
 	else
 	{
-		disc = sqrt(disc);
-		float t0 = -b - disc;
-		float t1 = -b + disc;
-
-		t = (t0 < t1) ? t0 : t1;
-
-		return true;
+		det = sqrt(det);
 	}
+	return (t = b - det) > eps ? t : ((t = b + det) > eps ? t : 0);
 }

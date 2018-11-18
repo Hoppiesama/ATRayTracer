@@ -22,4 +22,5 @@ public:
 
 	Vector3 lookAtTargetPos;
 	Vector3 lookDirection;
+
 };

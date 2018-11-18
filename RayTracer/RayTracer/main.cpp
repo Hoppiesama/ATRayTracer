@@ -33,8 +33,9 @@ double erand48(unsigned short xSubI[3])
 //TODO - Create/modify the "light" class and maybe implement "shadow" rays to get that stage done.
 
 
-
-Sphere spheres[] = {//Scene: radius, position, emission, color, material 
+Sphere spheres[] = 
+{
+	//Scene: radius, position, emission, color, material 
 	Sphere(1e5, Vector3(1e5 + 1 - 50 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
 	Sphere(1e5, Vector3(-1e5 + 99 - 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
 	Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
@@ -44,6 +45,7 @@ Sphere spheres[] = {//Scene: radius, position, emission, color, material
 	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC),//Mirr 
 	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFR),//Glas 
 	Sphere(16.5, Vector3(0, 52, 15),Vector3(12,12,12),  Vector3(), DIFF) //Lite 
+
 };
 
 inline double clamp(double x) 
@@ -62,7 +64,8 @@ inline double clamp(double x)
 	}
 }
 
-inline int toInt(double x) 
+// Gamma correction: https://learnopengl.com/Advanced-Lighting/Gamma-Correction
+inline int toGammaCorrectedInt(double x) 
 { 
 	return int(pow(clamp(x), 1 / 2.2) * 255 + .5); 
 }
@@ -76,18 +79,18 @@ inline bool intersect(const Ray &r, double &t, int &id)
 
 Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 {
-	double t;                               // distance to intersection 
-	int id = 0;                               // id of intersected object 
+	double t;                   // distance to intersection 
+	int id = 0;					// id of intersected object 
 	if(!intersect(r, t, id))
 	{
 		return Vector3(); // if miss, return black 
 	}
-	const Sphere &obj = spheres[id];        // the hit object 
+	const Sphere &hitObj = spheres[id];        // the hit object 
 
 	Vector3 hitPoint = r.GetOrigin() + r.GetDirection()*t;
-	Vector3 normal = (hitPoint - obj.position).normalize();
+	Vector3 normal = (hitPoint - hitObj.position).normalize();
 	Vector3 nl = normal.dot(r.GetDirection()) < 0 ? normal : normal * -1;
-	Vector3 objectColour = obj.colour;
+	Vector3 objectColour = hitObj.colour;
 
 	//double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z; // max refl 
 
@@ -116,11 +119,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 		}
 		else
 		{
-			return obj.emission; //R.R. 
+			return hitObj.emission; //R.R. 
 		}
 	}
 
-	if(obj.refl == DIFF)
+	if(hitObj.refl == DIFF)
 	{                  // Ideal DIFFUSE reflection 
 		double r1 = 2 * M_PI*erand48(xSubi);
 		double r2 = erand48(xSubi);
@@ -150,11 +153,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 		// u * cos(randomNo betwen 0 and 2Pi) + v * sin(same randomNo between 0 and 2Pi) + w * sqrt(1 - randomNo between 0.0 & 1.0) . normalized
 		Vector3 newDirection = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).normalize();
 
-		return obj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, newDirection), depth, xSubi));
+		return hitObj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, newDirection), depth, xSubi));
 	}
-	else if(obj.refl == SPEC)            // Ideal SPECULAR reflection 
+	else if(hitObj.refl == SPEC)            // Ideal SPECULAR reflection 
 	{
-		return obj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, r.GetDirection() - normal * 2 * normal.dot(r.GetDirection())), depth, xSubi));
+		return hitObj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, r.GetDirection() - normal * 2 * normal.dot(r.GetDirection())), depth, xSubi));
 	}
 
 	// Ideal dielectric REFRACTION 
@@ -184,7 +187,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 	// Total internal reflection 
 	if(cos2t < 0)
 	{
-		return obj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi));
+		return hitObj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi));
 	}
 		
 	Vector3 tdir;
@@ -222,16 +225,16 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 	{
 		if(erand48(xSubi) < P)
 		{
-			return obj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi)*RP);
+			return hitObj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi)*RP);
 		}
 		else
 		{
-			return obj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, tdir), depth, xSubi)*TP);
+			return hitObj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, tdir), depth, xSubi)*TP);
 		}
 	}
 	else
 	{
-		return obj.emission + objectColour.multiplyBy((radiance(reflRay, depth, xSubi)*Re + radiance(Ray(hitPoint, tdir), depth, xSubi)*Tr) );
+		return hitObj.emission + objectColour.multiplyBy((radiance(reflRay, depth, xSubi)*Re + radiance(Ray(hitPoint, tdir), depth, xSubi)*Tr) );
 	}
 }
 
@@ -293,14 +296,13 @@ void threadOver(int samples, double fov, int yStart, int yEnd, int width, int he
 
 int main(int argc, char *argv[])
 {
-	int width = 1024, height = 767, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
+	int width = 1024, height = 768, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
 
 	samps = 8; //override sample!
 
-	Camera cam(Vector3(45, 52, 240), Vector3(20, 10, -1)); // cam pos, position to look at
+	Camera cam(Vector3(0, 52, 240), Vector3(0, 10, -1)); // cam pos, position to look at
 	
 	bool threaded = true;
-
 
 	//Field of view multiplier used in testing. it's a simple value rather than a "degrees of camera aperture".
 	//Needs additional work.
@@ -386,12 +388,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
 	std::ofstream output("output.ppm");
 	output << "P3\n" << width << '\n' << height << '\n' << "255\n";
 	for(int i = 0; i < width*height; i++)
 	{
-		output << toInt(pixelColour[i].x) << " " << toInt(pixelColour[i].y) << " " << toInt(pixelColour[i].z) << std::endl;
+		output << toGammaCorrectedInt(pixelColour[i].x) << " " << toGammaCorrectedInt(pixelColour[i].y) << " " << toGammaCorrectedInt(pixelColour[i].z) << std::endl;
 	}
 }
 

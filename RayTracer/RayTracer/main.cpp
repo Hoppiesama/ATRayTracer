@@ -45,7 +45,6 @@ Sphere spheres[] =
 	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC),//Mirr 
 	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFR),//Glas 
 	Sphere(16.5, Vector3(0, 52, 15),Vector3(12,12,12),  Vector3(), DIFF) //Lite 
-
 };
 
 inline double clamp(double x) 
@@ -81,10 +80,15 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 {
 	double t;                   // distance to intersection 
 	int id = 0;					// id of intersected object 
+
+	//TODO - replace the below with bvh.getObjectsToTest(Ray& theRay)
+	//then run new version of "intersect" with the "id" being replaced by an Object* to be assigned the first object hit. ALSO, pass in the returned vector of objects from the bvh above.
+
 	if(!intersect(r, t, id))
 	{
 		return Vector3(); // if miss, return black 
 	}
+
 	const Sphere &hitObj = spheres[id];        // the hit object 
 
 	Vector3 hitPoint = r.GetOrigin() + r.GetDirection()*t;
@@ -94,28 +98,29 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 
 	//double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z; // max refl 
 
-	double p;
-	// max refl 
+	double probability;
+	// Get the highest colour value to determine likelihood of continuing in russian roulette.
 	if(objectColour.x > objectColour.y && objectColour.x > objectColour.z)
 	{
-		p = objectColour.x;
+		probability = objectColour.x;
 	}
 	else if(objectColour.y > objectColour.z)
 	{
-		p = objectColour.y;
+		probability = objectColour.y;
 	}
 	else
 	{
-		p = objectColour.z;
+		probability = objectColour.z;
 	}
 
 	//After 5 radiance recursions, uses random 
 	//chance to end based on highest value in object colour
 	if(++depth > 5)
 	{
-		if(erand48(xSubi) < p)
+		//in the case that p = 0 (no colour value), it can't possibly trigger and emission is returned instead.
+		if(erand48(xSubi) < probability)
 		{
-			objectColour = objectColour * (1 / p);
+			objectColour = objectColour * (1 / probability);
 		}
 		else
 		{
@@ -143,7 +148,6 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 			u = Vector3(1, 0, 0).cross(w);
 		}
 		u.normalize();
-		//Vector3 u = ( (			fabs(w.x) > .1 ? Vector3(0, 1, 0) : Vector3(1, 0, 0)	) % w		).normalize();
 
 		Vector3 v = w.cross(u); // % = cross
 
@@ -157,35 +161,51 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 	}
 	else if(hitObj.refl == SPEC)            // Ideal SPECULAR reflection 
 	{
+		//r.GetDirection() - normal * 2 * normal.dot(r.GetDirection()) is a mirrored angle from the normal, e.g. angle of incidence and angle of reflection from the normal are the same.
+		//based on the idea shown here https://youtu.be/ytRrjf9OPHg?t=1031 ...
 		return hitObj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, r.GetDirection() - normal * 2 * normal.dot(r.GetDirection())), depth, xSubi));
 	}
 
-	// Ideal dielectric REFRACTION 
+	//dielectric REFRACTION 
 	Ray reflRay(hitPoint, r.GetDirection() - normal * 2 * normal.dot(r.GetDirection()));
 
 	// Check if Ray is from the outside going in? 
 	bool into = normal.dot(nl) > 0;
 
-	double nc = 1;
-	double nt = 1.5;
+	double airRefractionIndex = 1;
+
+	//TODO - replace this with access to hit object's material "Index of Refraction"
+	double glassRefractionIndex = 1.5;
+
+
 	double nnt;
 
+	//If going in, we calculate the change in angle due to the refraction. If coming out, it's inverted back.
 	if(into)
 	{
-		nnt = nc / nt; // == 1/1.5 == 0.666666
+		nnt = airRefractionIndex / glassRefractionIndex; // == 1/1.5 == 0.666666
 	}
 	else
 	{
-		nnt = nt / nc;  // == 1.5/1 == 1.5
+		nnt = glassRefractionIndex / airRefractionIndex;  // == 1.5/1 == 1.5
 	}
+
+
 
 	double rayDirectionDotNormal = r.GetDirection().dot(nl);
 
-	//TOM - Calculate angle of ray relative to surface, to determine if it should be total internal reflection?
-	double cos2t = 1 - nnt * nnt * (1 - rayDirectionDotNormal * rayDirectionDotNormal);
 
-	// Total internal reflection 
-	if(cos2t < 0)
+	//Calculate angle of ray relative to surface.
+	double cosine2Theta = 1 - nnt * nnt * (1 - rayDirectionDotNormal * rayDirectionDotNormal);
+
+	/*When the angle of incident is greater than some value called the critical angle, 
+	then 100 % of the light incident on the surface is reflected.In another words, 
+	when the angle of incident is greater than the critical angle, there isn't any refraction at all.
+	This only happens though when the light ray passes from one medium to another medium with a lower index of refraction, 
+	such as in the case of a water-air, diamond-water or glass-water interaction. This phenomenon is called ...
+
+	"total internal reflection."	*/
+	if(cosine2Theta < 0)
 	{
 		return hitObj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi));
 	}
@@ -193,19 +213,21 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 	Vector3 tdir;
 	if(into)
 	{
-		tdir = r.GetDirection()*nnt - normal * ( 1 *(rayDirectionDotNormal*nnt + sqrt(cos2t)));
+		//fresnel term?
+		tdir = r.GetDirection()*nnt - normal * ( 1 *(rayDirectionDotNormal*nnt + sqrt(cosine2Theta)));
 	}
 	else
 	{
-		tdir = r.GetDirection()*nnt - normal * ( -1 * (rayDirectionDotNormal*nnt + sqrt(cos2t)));
+		//fresnel term?
+		tdir = r.GetDirection()*nnt - normal * ( -1 * (rayDirectionDotNormal*nnt + sqrt(cosine2Theta)));
 	}
 	tdir.normalize();
 
-	double a = nt - nc; // == 1.5 - 1 == 0.5
-	double b = nt + nc; // == 1.5 + 1 = 2.5
-	double R0 = (a * a) / (b*b); // == 0.5^2 / (b^2)
+	double a = glassRefractionIndex - airRefractionIndex; // == 1.5 - 1 == 0.5
+	double b = glassRefractionIndex + airRefractionIndex; // == 1.5 + 1 = 2.5
+	double reflectanceAtNormalIncidence = (a * a) / (b*b); // == 0.5^2 / (b^2)
 
-	double c;
+	double c;	// c = 1 - cos(theta)
 	if(into)
 	{
 		c = 1 - (-rayDirectionDotNormal);
@@ -215,17 +237,17 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 		c = tdir.dot(normal);
 	}
 
-	double Re = R0 + (1 - R0)*c*c*c*c*c;
-	double Tr = 1 - Re;
-	double P = .25 + .5*Re;
-	double RP = Re / P;
-	double TP = Tr / (1 - P);
+	double fresnelReflectance = reflectanceAtNormalIncidence + (1 - reflectanceAtNormalIncidence)*c*c*c*c*c;
+	double Tr = 1 - fresnelReflectance;
+	double probabilityOfReflecting = .25 + .5*fresnelReflectance;
+	double probabilityOfRefracting = fresnelReflectance / probabilityOfReflecting;
+	double TP = Tr / (1 - probabilityOfReflecting);
 
 	if(depth > 2)
 	{
-		if(erand48(xSubi) < P)
+		if(erand48(xSubi) < probabilityOfReflecting)
 		{
-			return hitObj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi)*RP);
+			return hitObj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi)*probabilityOfRefracting);
 		}
 		else
 		{
@@ -234,17 +256,17 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 	}
 	else
 	{
-		return hitObj.emission + objectColour.multiplyBy((radiance(reflRay, depth, xSubi)*Re + radiance(Ray(hitPoint, tdir), depth, xSubi)*Tr) );
+		return hitObj.emission + objectColour.multiplyBy((radiance(reflRay, depth, xSubi)*fresnelReflectance + radiance(Ray(hitPoint, tdir), depth, xSubi)*Tr) );
 	}
 }
 
 
 
-void threadOver(int samples, double fov, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera _cam, std::atomic<int>* _counter, std::string* _string)
+void threadOver(int samples, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera _cam, std::atomic<int>* _counter, std::string* _string)
 {
-	Vector3 cx = _cam.camRight * fov;
+	Vector3 cx = _cam.GetRightFOVAdjusted();
 	//preserve aspect ration based on camRight
-	Vector3 cy = (cx % _cam.lookDirection) * height / width;
+	Vector3 cy = _cam.GetUpFOVAdjusted();
 
 	Vector3 r;
 
@@ -282,7 +304,7 @@ void threadOver(int samples, double fov, int yStart, int yEnd, int width, int he
 							+ _cam.lookDirection;
 						//push the offsets on the camera's "forward"
 
-						r = r + radiance(Ray(_cam.position, direction.normalize()), 0, Xi)*(1. / samples);
+						r = r + radiance(Ray(_cam.position, direction.normalize()), 0, Xi) * (1. / samples);
 					}
 					(pixelColour)->at(i) = (pixelColour)->at(i) + Vector3(clamp(r.x), clamp(r.y), clamp(r.z))*.25;
 				}
@@ -300,13 +322,13 @@ int main(int argc, char *argv[])
 
 	samps = 8; //override sample!
 
-	Camera cam(Vector3(0, 52, 240), Vector3(0, 10, -1)); // cam pos, position to look at
+	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
+	double fov = 90;
+
+	Camera cam(Vector3(0, 52, 240), Vector3(0, 10, -1), width, height, fov); // cam pos, position to look at
 	
 	bool threaded = true;
 
-	//Field of view multiplier used in testing. it's a simple value rather than a "degrees of camera aperture".
-	//Needs additional work.
-	double fov = 1.0;
 
 	//used for output;
 	std::vector<Vector3> pixelColour;
@@ -321,10 +343,10 @@ int main(int argc, char *argv[])
 
 		std::atomic<int> finishedThreads = 0;
 
-		std::thread thread = std::thread(threadOver, samps, fov, 0, height / 4, width, height, &pixelColour, cam, &finishedThreads, &t1);
-		std::thread thread2 = std::thread(threadOver, samps, fov, height / 4, (height / 4) * 2, width, height, &pixelColour, cam, &finishedThreads, &t2);
-		std::thread thread3 = std::thread(threadOver, samps, fov, (height / 4) * 2, (height / 4) * 3, width, height, &pixelColour, cam, &finishedThreads, &t3);
-		std::thread thread4 = std::thread(threadOver, samps, fov, (height / 4) * 3, height, width, height, &pixelColour, cam, &finishedThreads, &t4);
+		std::thread thread = std::thread(threadOver, samps, 0, height / 4, width, height, &pixelColour, cam, &finishedThreads, &t1);
+		std::thread thread2 = std::thread(threadOver, samps, height / 4, (height / 4) * 2, width, height, &pixelColour, cam, &finishedThreads, &t2);
+		std::thread thread3 = std::thread(threadOver, samps, (height / 4) * 2, (height / 4) * 3, width, height, &pixelColour, cam, &finishedThreads, &t3);
+		std::thread thread4 = std::thread(threadOver, samps, (height / 4) * 3, height, width, height, &pixelColour, cam, &finishedThreads, &t4);
 
 		while(finishedThreads < 4)
 		{
@@ -343,13 +365,11 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		cam.camRight = cam.lookDirection % cam.up;
 
-		Vector3 cx = cam.camRight * fov;
-		//preserve aspect ration based on camRight
-		Vector3 cy = (cx % cam.lookDirection) * height / width;
+		Vector3 cx = cam.GetRightFOVAdjusted();
+		Vector3 cy = cam.GetUpFOVAdjusted();
 
-		Vector3 r;
+		Vector3 totalRadiance;
 
 		for(int y = 0; y<height; y++)
 		{                       
@@ -363,7 +383,7 @@ int main(int argc, char *argv[])
 
 				for(int subPixelY = 0; subPixelY < 2; subPixelY++)     // 2x2 subpixel rows 
 				{
-					for(int subPixelX = 0; subPixelX<2; subPixelX++, r = Vector3()) // 2x2 subpixel cols 
+					for(int subPixelX = 0; subPixelX<2; subPixelX++, totalRadiance = Vector3()) // 2x2 subpixel cols 
 					{
 						for(int s = 0; s<samps; s++)
 						{
@@ -378,10 +398,9 @@ int main(int argc, char *argv[])
 								+ cy * (((subPixelY + .5 + dy) / 2 + y) / height - .5)
 								+ cam.lookDirection;
 							//push the offsets on the camera's "forward"
-
-							r = r + radiance(Ray(cam.position, direction.normalize()), 0, Xi)*(1. / samps);
+							totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi)*(1. / samps);
 						}
-						pixelColour[i] = pixelColour[i] + Vector3(clamp(r.x), clamp(r.y), clamp(r.z))*.25;
+						pixelColour[i] = pixelColour[i] + Vector3(clamp(totalRadiance.x), clamp(totalRadiance.y), clamp(totalRadiance.z))*.25;
 					}
 				}
 			}

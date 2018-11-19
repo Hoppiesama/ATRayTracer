@@ -6,17 +6,19 @@ double Sphere::intersect(const Ray & r) const
 	Vector3 op = position - r.GetOrigin(); // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0 
 
 	double t;
-	double eps = 1e-4;
+	double epsilon = 1e-4;
 	double b = op.dot(r.GetDirection());
-	double det = b * b - op.dot(op) + rad * rad;
 
-	if(det < 0)
+	double determinant = b * b - op.dot(op) + radius * radius;
+
+	//hasn't hit
+	if(determinant < 0)
 	{
 		return 0;
 	}
 	else
 	{
-		det = sqrt(det);
+		determinant = sqrt(determinant);
 	}
-	return (t = b - det) > eps ? t : ((t = b + det) > eps ? t : 0);
+	return (t = b - determinant) > epsilon ? t : ((t = b + determinant) > epsilon ? t : 0);
 }

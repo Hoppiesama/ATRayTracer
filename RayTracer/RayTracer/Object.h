@@ -1,5 +1,5 @@
 #pragma once
-#include "Transform.h"
+#include "Material.h"
 
 class Object
 {
@@ -8,7 +8,9 @@ public:
 	Object() = default;
 	~Object() = default;
 
-	Transform transform;
+	Vector3 position;
+
+	Material material;
 
 private:
 };

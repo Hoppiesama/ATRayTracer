@@ -8,12 +8,6 @@
 //https://coocoscode.wordpress.com/2010/12/15/building-bounding-volume-hiearchies/
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
 
-enum LeftOrRight
-{
-	LEFT,
-	RIGHT,
-};
-
 
 class BoundingBox
 {
@@ -51,7 +45,6 @@ class Node
 {
 public:
 	BoundingBox boundingBox;
-
 	std::unique_ptr<Node> leftChild;
 	std::unique_ptr<Node> rightChild;
 	std::vector<Sphere*> nodeObjects;

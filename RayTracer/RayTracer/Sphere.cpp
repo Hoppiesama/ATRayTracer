@@ -3,13 +3,13 @@
 double Sphere::intersect(const Ray & r) const
 {
 	// returns distance, 0 if nohit 
-	Vector3 op = position - r.GetOrigin(); // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0 
+	Vector3 originToPositionDirection = position - r.GetOrigin(); // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0 
 
 	double t;
 	double epsilon = 1e-4;
-	double b = op.dot(r.GetDirection());
+	double originToPosDirDotRayDir = originToPositionDirection.dot(r.GetDirection());
 
-	double determinant = b * b - op.dot(op) + radius * radius;
+	double determinant = originToPosDirDotRayDir * originToPosDirDotRayDir - originToPositionDirection.dot(originToPositionDirection) + radius * radius;
 
 	//hasn't hit
 	if(determinant < 0)
@@ -20,5 +20,6 @@ double Sphere::intersect(const Ray & r) const
 	{
 		determinant = sqrt(determinant);
 	}
-	return (t = b - determinant) > epsilon ? t : ((t = b + determinant) > epsilon ? t : 0);
+	//if hit return t, else return 0
+	return (t = originToPosDirDotRayDir - determinant) > epsilon ? t : ((t = originToPosDirDotRayDir + determinant) > epsilon ? t : 0);
 }

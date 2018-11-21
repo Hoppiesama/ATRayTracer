@@ -3,7 +3,8 @@
 
 
 //TODO - change this to "objects" not sphere
-
+#define nodeTraversalCost 3;
+#define objectTraversalCost 5;
 
 
 void BoundingVolumeHierarchy::BuildBVH(Node* node, std::vector<Sphere*> objects)
@@ -31,17 +32,14 @@ void BoundingVolumeHierarchy::BuildBVH(Node* node, std::vector<Sphere*> objects)
 	//0 == X, 1 == y, 2 == Z
 	for (int i = 0; i < 3; i++)
 	{
-		if (i == 0)
-		{
-			sortObjectsAlongAxis(objects, i);
-		//	findBestSurfaceArea
-			std::pair<std::vector<Sphere*>, std::vector<Sphere*>> temp = splitObjects(objects, bestCost);
+		sortObjectsAlongAxis(objects, i);
+	//	findBestSurfaceArea
+		std::pair<std::vector<Sphere*>, std::vector<Sphere*>> temp = splitObjects(objects, bestCost);
 
-			if (bestCost < bestCostStore)
-			{
-				leftObjects = temp.first;
-				rightObjects = temp.second;
-			}
+		if (bestCost < bestCostStore)
+		{
+			leftObjects = temp.first;
+			rightObjects = temp.second;
 		}
 	}
 
@@ -112,7 +110,7 @@ std::pair<Vector3, Vector3> BoundingVolumeHierarchy::calculateMinimumBox(std::ve
 }
 
 //Sorts by longest extent of the current node.
-void BoundingVolumeHierarchy::sortObjectsAlongAxis(std::vector<Sphere*> objects, int _int)
+void BoundingVolumeHierarchy::sortObjectsAlongAxis(std::vector<Sphere*>& objects, int _int)
 {	
 	Vector3 extents = thisNode->boundingBox.GetExtents();
 
@@ -141,6 +139,7 @@ std::pair<std::vector<Sphere*>, std::vector<Sphere*>> BoundingVolumeHierarchy::s
 
 	for (int indexAtEndOfFirstSet = 0; indexAtEndOfFirstSet < (int)objects.size(); indexAtEndOfFirstSet++)
 	{
+
 		std::vector<Sphere*> leftOfSplit = GetObjectsUpToIndex(objects, indexAtEndOfFirstSet);
 		std::vector<Sphere*> rightOfSplit = GetObjectsFromIndexToEnd(objects, indexAtEndOfFirstSet);
 
@@ -150,7 +149,8 @@ std::pair<std::vector<Sphere*>, std::vector<Sphere*>> BoundingVolumeHierarchy::s
 		BoundingBox boxRight;
 		boxRight.SetBounds(calculateMinimumBox(rightOfSplit));
 
-		double thisCost = calculateCombinedSurfaceAreas(boxLeft, boxRight) + (double)objects.size();
+
+		double thisCost = calculateCombinedSurfaceAreas(boxLeft, boxRight);
 
 		if (thisCost < bestCost)
 		{
@@ -168,10 +168,13 @@ double BoundingVolumeHierarchy::calculateCombinedSurfaceAreas(BoundingBox boxLef
 	Vector3 extentsA = boxLeft.GetExtents();
 	Vector3 extentsB = boxRight.GetExtents();
 
+	Vector3 extentsParent = thisNode->boundingBox.GetExtents();
+
 	double surfAreaA = 2 * (extentsA.x * extentsA.y) + 2 * (extentsA.x * extentsA.z) + 2 * (extentsA.y * extentsA.z);
 	double surfAreaB = 2 * (extentsB.x * extentsB.y) + 2 * (extentsB.x * extentsB.z) + 2 * (extentsB.y * extentsB.z);
+	double surfAreaParent = 2 * (extentsParent.x * extentsParent.y) + 2 * (extentsParent.x * extentsParent.z) + 2 * (extentsParent.y * extentsParent.z);
 
-	return surfAreaA + surfAreaB;
+	return objectTraversalCost + (surfAreaA / surfAreaParent) * nodeTraversalCost + (surfAreaB / surfAreaParent) * nodeTraversalCost;
 }
 
 std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsUpToIndex(std::vector<Sphere*> _objects, int _upToIndex)
@@ -179,7 +182,7 @@ std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsUpToIndex(std::vector<Sp
 	std::vector<Sphere*> temp;
 	for (int i = 0; i <= _upToIndex; i++)
 	{
-		temp.push_back(_objects.at(i));
+		temp.push_back(&(*_objects.at(i) ) );
 	}
 
 	return temp;
@@ -188,10 +191,23 @@ std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsUpToIndex(std::vector<Sp
 std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsFromIndexToEnd(std::vector<Sphere*> _objects, int _upFromIndex)
 {
 	std::vector<Sphere*> temp;
-	for (int i = _upFromIndex; i <= _objects.size(); i++)
+	for (int i = _upFromIndex +1; i <= _objects.size() - 1; i++)
 	{
-		temp.push_back(_objects.at(i));
+		temp.push_back(&(*_objects.at(i) ));
 	}
+	return temp;
+}
+
+
+
+
+//TODO - implement tree traversal through intersections
+Object * BoundingVolumeHierarchy::intersectTree(Ray & _r)
+{
+	Object* temp = nullptr;
+
+	//thisNode->boundingBox.intersect(_r);
+
 	return temp;
 }
 

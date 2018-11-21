@@ -25,7 +25,7 @@ public:
 		position = p_;
 	}
 
-	double intersect(const Ray &r) const;
+	double intersect(const Ray &r) const override;
 
 
 	double GetLowestXVert() { return position.x - radius; }

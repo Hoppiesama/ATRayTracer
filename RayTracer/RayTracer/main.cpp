@@ -10,6 +10,7 @@
 #include "Sphere.h"
 #include <atomic>
 #include <string>
+#include "BoundingVolumeHierarchy.h"
 
 #include <thread>
 
@@ -83,7 +84,6 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 
 	//TODO - replace the below with bvh.getObjectsToTest(Ray& theRay)
 	//then run new version of "intersect" with the "id" being replaced by an Object* to be assigned the first object hit. ALSO, pass in the returned vector of objects from the bvh above.
-
 	if(!intersect(r, t, id))
 	{
 		return Vector3(); // if miss, return black 
@@ -320,6 +320,17 @@ int main(int argc, char *argv[])
 {
 	int width = 1024, height = 768, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
 
+	BoundingVolumeHierarchy bvh;
+
+	std::vector<Sphere*> objectsVector;
+
+	for(int i = 0; i < 6; i++)
+	{
+		objectsVector.push_back(&spheres[i]);
+	}
+
+	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
+
 	samps = 8; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
@@ -327,8 +338,8 @@ int main(int argc, char *argv[])
 
 	Camera cam(Vector3(0, 52, 240), Vector3(0, 10, -1), width, height, fov); // cam pos, position to look at
 	
-	bool threaded = true;
-
+	bool threaded = false;
+	bool useBVH = false;
 
 	//used for output;
 	std::vector<Vector3> pixelColour;
@@ -365,42 +376,84 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-
 		Vector3 cx = cam.GetRightFOVAdjusted();
 		Vector3 cy = cam.GetUpFOVAdjusted();
 
 		Vector3 totalRadiance;
 
-		for(int y = 0; y<height; y++)
-		{                       
-			// Loop over image rows 
-			fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps * 4, 100.*y / (height - 1));
-			unsigned short Xi[3] = { 0,0, y*y*y };
-
-			for(unsigned short x = 0; x < width; x++) // Loop cols 
+		if(useBVH)
+		{
+			for(int y = 0; y<height; y++)
 			{
-				int i = (height - y - 1)* width + x;
+				// Loop over image rows 
+				fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps * 4, 100.*y / (height - 1));
+				unsigned short Xi[3] = { 0,0, y*y*y };
 
-				for(int subPixelY = 0; subPixelY < 2; subPixelY++)     // 2x2 subpixel rows 
+				for(unsigned short x = 0; x < width; x++) // Loop cols 
 				{
-					for(int subPixelX = 0; subPixelX<2; subPixelX++, totalRadiance = Vector3()) // 2x2 subpixel cols 
-					{
-						for(int s = 0; s<samps; s++)
-						{
-							//Produces random number between -1 and 1. Tent filter (weights towards centre point)
-							double r1 = 2 * erand48(Xi);
-							double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-							double r2 = 2 * erand48(Xi);
-							double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+					int i = (height - y - 1)* width + x;
 
-							//Get the ray direction based on the offsets produced beforehand
-							Vector3 direction = cx * (((subPixelX + .5 + dx) / 2 + x) / width - .5)
-								+ cy * (((subPixelY + .5 + dy) / 2 + y) / height - .5)
-								+ cam.lookDirection;
-							//push the offsets on the camera's "forward"
-							totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi)*(1. / samps);
+					for(int subPixelY = 0; subPixelY < 2; subPixelY++)     // 2x2 subpixel rows 
+					{
+						for(int subPixelX = 0; subPixelX<2; subPixelX++, totalRadiance = Vector3()) // 2x2 subpixel cols 
+						{
+							for(int s = 0; s<samps; s++)
+							{
+								//Produces random number between -1 and 1. Tent filter (weights towards centre point)
+								double r1 = 2 * erand48(Xi);
+								double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+								double r2 = 2 * erand48(Xi);
+								double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+
+								//Get the ray direction based on the offsets produced beforehand
+								Vector3 direction = cx * (((subPixelX + .5 + dx) / 2 + x) / width - .5)
+									+ cy * (((subPixelY + .5 + dy) / 2 + y) / height - .5)
+									+ cam.lookDirection;
+
+								Object* object = bvh.intersectTree(Ray(cam.position, direction.normalize());
+
+								//push the offsets on the camera's "forward"
+								totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi)*(1. / samps);
+							}
+							pixelColour[i] = pixelColour[i] + Vector3(clamp(totalRadiance.x), clamp(totalRadiance.y), clamp(totalRadiance.z))*.25;
 						}
-						pixelColour[i] = pixelColour[i] + Vector3(clamp(totalRadiance.x), clamp(totalRadiance.y), clamp(totalRadiance.z))*.25;
+					}
+				}
+			}
+		}
+		else
+		{
+			for(int y = 0; y<height; y++)
+			{
+				// Loop over image rows 
+				fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps * 4, 100.*y / (height - 1));
+				unsigned short Xi[3] = { 0,0, y*y*y };
+
+				for(unsigned short x = 0; x < width; x++) // Loop cols 
+				{
+					int i = (height - y - 1)* width + x;
+
+					for(int subPixelY = 0; subPixelY < 2; subPixelY++)     // 2x2 subpixel rows 
+					{
+						for(int subPixelX = 0; subPixelX<2; subPixelX++, totalRadiance = Vector3()) // 2x2 subpixel cols 
+						{
+							for(int s = 0; s<samps; s++)
+							{
+								//Produces random number between -1 and 1. Tent filter (weights towards centre point)
+								double r1 = 2 * erand48(Xi);
+								double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+								double r2 = 2 * erand48(Xi);
+								double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+
+								//Get the ray direction based on the offsets produced beforehand
+								Vector3 direction = cx * (((subPixelX + .5 + dx) / 2 + x) / width - .5)
+									+ cy * (((subPixelY + .5 + dy) / 2 + y) / height - .5)
+									+ cam.lookDirection;
+								//push the offsets on the camera's "forward"
+								totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi)*(1. / samps);
+							}
+							pixelColour[i] = pixelColour[i] + Vector3(clamp(totalRadiance.x), clamp(totalRadiance.y), clamp(totalRadiance.z))*.25;
+						}
 					}
 				}
 			}

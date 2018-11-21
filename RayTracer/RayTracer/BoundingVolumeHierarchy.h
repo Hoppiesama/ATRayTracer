@@ -63,7 +63,7 @@ public:
 	void BuildBVH(Node* node, std::vector<Sphere*> objects);
 
 	std::pair<Vector3, Vector3> calculateMinimumBox(std::vector<Sphere*> objects);
-	void sortObjectsAlongAxis(std::vector<Sphere*> objects, int _int);
+	void sortObjectsAlongAxis(std::vector<Sphere*>& objects, int _int);
 	std::pair<std::vector<Sphere*>, std::vector<Sphere*>> splitObjects(std::vector<Sphere*> objects, double & bestCost);
 	double calculateCombinedSurfaceAreas(BoundingBox boxLeft, BoundingBox boxright);
 	std::vector<Sphere*> GetObjectsUpToIndex(std::vector<Sphere*> _objects, int _upToIndex);

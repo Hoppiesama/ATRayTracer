@@ -5,7 +5,7 @@ class Ray
 {
 public:
 	Ray() = default;
-	Ray(Vector3 _origin, Vector3 _direction) : origin(_origin), direction(_direction) {};
+	Ray(Vector3 _origin, Vector3 _direction) : origin(_origin), direction(_direction){	};
 	~Ray() = default;
 
 	//p(t) = A + t*B

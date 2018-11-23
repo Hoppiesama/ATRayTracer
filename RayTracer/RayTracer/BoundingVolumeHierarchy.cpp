@@ -7,7 +7,7 @@
 #define objectTraversalCost 5;
 
 
-void BoundingVolumeHierarchy::BuildBVH(Node* node, std::vector<Sphere*> objects)
+void BoundingVolumeHierarchy::BuildBVH(Node* node, std::vector<Object*> objects)
 {
 	node->boundingBox.SetBounds(calculateMinimumBox(objects));
 
@@ -19,27 +19,26 @@ void BoundingVolumeHierarchy::BuildBVH(Node* node, std::vector<Sphere*> objects)
 		return;
 	}
 
-	int axisWithBestSurfaceArea;
-
-	std::vector<Sphere*> leftObjects;
-	std::vector<Sphere*> rightObjects;
+	std::vector<Object*> leftObjects;
+	std::vector<Object*> rightObjects;
 
 	double bestCost = DBL_MAX;
 	double bestCostStore = bestCost;
 
-	std::pair<std::vector<Sphere*>, std::vector<Sphere*>> bestPair;
+	std::pair<std::vector<Object*>, std::vector<Object*>> bestPair;
 
 	//0 == X, 1 == y, 2 == Z
 	for (int i = 0; i < 3; i++)
 	{
 		sortObjectsAlongAxis(objects, i);
 	//	findBestSurfaceArea
-		std::pair<std::vector<Sphere*>, std::vector<Sphere*>> temp = splitObjects(objects, bestCost);
+		std::pair<std::vector<Object*>, std::vector<Object*>> temp = splitObjects(objects, bestCost);
 
 		if (bestCost < bestCostStore)
 		{
 			leftObjects = temp.first;
 			rightObjects = temp.second;
+			bestCostStore = bestCost;
 		}
 	}
 
@@ -51,7 +50,7 @@ void BoundingVolumeHierarchy::BuildBVH(Node* node, std::vector<Sphere*> objects)
 }
 
 
-std::pair<Vector3, Vector3> BoundingVolumeHierarchy::calculateMinimumBox(std::vector<Sphere*> objects)
+std::pair<Vector3, Vector3> BoundingVolumeHierarchy::calculateMinimumBox(std::vector<Object*> objects)
 {
 	//Determine the centre point of all the objects.
 	double x = 0;
@@ -80,26 +79,24 @@ std::pair<Vector3, Vector3> BoundingVolumeHierarchy::calculateMinimumBox(std::ve
 			bottomBackLeft.x = (*it)->GetLowestXVert();
 		}
 
-		if((*it)->GetHighestXVert() > topFrontRight.x)
-		{
-			topFrontRight.x = (*it)->GetHighestXVert();
-		}
-
 		if((*it)->GetLowestYVert() < bottomBackLeft.y)
 		{
 			bottomBackLeft.y = (*it)->GetLowestYVert();
+		}
+		if((*it)->GetLowestZVert() < bottomBackLeft.z)
+		{
+			bottomBackLeft.z = (*it)->GetLowestZVert();
+		}
+
+		if((*it)->GetHighestXVert() > topFrontRight.x)
+		{
+			topFrontRight.x = (*it)->GetHighestXVert();
 		}
 
 		if((*it)->GetHighestYVert() > topFrontRight.y)
 		{
 			topFrontRight.y = (*it)->GetHighestYVert();
 		}
-
-		if((*it)->GetLowestZVert() < bottomBackLeft.z)
-		{
-			bottomBackLeft.z = (*it)->GetLowestZVert();
-		}
-
 		if((*it)->GetHighestZVert() > topFrontRight.z)
 		{
 			topFrontRight.z = (*it)->GetHighestZVert();
@@ -110,29 +107,29 @@ std::pair<Vector3, Vector3> BoundingVolumeHierarchy::calculateMinimumBox(std::ve
 }
 
 //Sorts by longest extent of the current node.
-void BoundingVolumeHierarchy::sortObjectsAlongAxis(std::vector<Sphere*>& objects, int _int)
+void BoundingVolumeHierarchy::sortObjectsAlongAxis(std::vector<Object*>& objects, int _int)
 {	
 	Vector3 extents = thisNode->boundingBox.GetExtents();
 
 	if(_int == 0)
 	{
 		//Sort by x pos
-		std::sort(objects.begin(), objects.end(), [](Sphere* a, Sphere* b) { return a->position.x < b->position.x; });
+		std::sort(objects.begin(), objects.end(), [](Object* a, Object* b) { return a->position.x < b->position.x; });
 	}
 	else if(_int == 1)
 	{
 		//Sort by y pos
-		std::sort(objects.begin(), objects.end(), [](Sphere* a, Sphere* b) { return a->position.y < b->position.y; });
+		std::sort(objects.begin(), objects.end(), [](Object* a, Object* b) { return a->position.y < b->position.y; });
 	}
 	else
 	{
 		//Sort by z pos
-		std::sort(objects.begin(), objects.end(), [](Sphere* a, Sphere* b) { return a->position.z < b->position.z; });
+		std::sort(objects.begin(), objects.end(), [](Object* a, Object* b) { return a->position.z < b->position.z; });
 	}
 }
 
 //TODO - find the bounding box combinations with the lowest surface area
-std::pair<std::vector<Sphere*>, std::vector<Sphere*>> BoundingVolumeHierarchy::splitObjects(std::vector<Sphere*> objects, double& bestCost)
+std::pair<std::vector<Object*>, std::vector<Object*>> BoundingVolumeHierarchy::splitObjects(std::vector<Object*> objects, double& bestCost)
 {
 	int permutationsLeft = 0;
 	int permutationsRight = (int)objects.size();
@@ -140,8 +137,8 @@ std::pair<std::vector<Sphere*>, std::vector<Sphere*>> BoundingVolumeHierarchy::s
 	for (int indexAtEndOfFirstSet = 0; indexAtEndOfFirstSet < (int)objects.size(); indexAtEndOfFirstSet++)
 	{
 
-		std::vector<Sphere*> leftOfSplit = GetObjectsUpToIndex(objects, indexAtEndOfFirstSet);
-		std::vector<Sphere*> rightOfSplit = GetObjectsFromIndexToEnd(objects, indexAtEndOfFirstSet);
+		std::vector<Object*> leftOfSplit = GetObjectsUpToIndex(objects, indexAtEndOfFirstSet);
+		std::vector<Object*> rightOfSplit = GetObjectsFromIndexToEnd(objects, indexAtEndOfFirstSet);
 
 		BoundingBox boxLeft;
 		boxLeft.SetBounds(calculateMinimumBox(leftOfSplit));
@@ -177,9 +174,9 @@ double BoundingVolumeHierarchy::calculateCombinedSurfaceAreas(BoundingBox boxLef
 	return objectTraversalCost + (surfAreaA / surfAreaParent) * nodeTraversalCost + (surfAreaB / surfAreaParent) * nodeTraversalCost;
 }
 
-std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsUpToIndex(std::vector<Sphere*> _objects, int _upToIndex)
+std::vector<Object*> BoundingVolumeHierarchy::GetObjectsUpToIndex(std::vector<Object*> _objects, int _upToIndex)
 {
-	std::vector<Sphere*> temp;
+	std::vector<Object*> temp;
 	for (int i = 0; i <= _upToIndex; i++)
 	{
 		temp.push_back(&(*_objects.at(i) ) );
@@ -188,9 +185,9 @@ std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsUpToIndex(std::vector<Sp
 	return temp;
 }
 
-std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsFromIndexToEnd(std::vector<Sphere*> _objects, int _upFromIndex)
+std::vector<Object*> BoundingVolumeHierarchy::GetObjectsFromIndexToEnd(std::vector<Object*> _objects, int _upFromIndex)
 {
-	std::vector<Sphere*> temp;
+	std::vector<Object*> temp;
 	for (int i = _upFromIndex +1; i <= _objects.size() - 1; i++)
 	{
 		temp.push_back(&(*_objects.at(i) ));
@@ -202,13 +199,27 @@ std::vector<Sphere*> BoundingVolumeHierarchy::GetObjectsFromIndexToEnd(std::vect
 
 
 //TODO - implement tree traversal through intersections
-Object * BoundingVolumeHierarchy::intersectTree(Ray & _r)
+void BoundingVolumeHierarchy::intersectTree(Ray& _r, Node* _node, std::vector<Object*>& _objectsHit)
 {
-	Object* temp = nullptr;
+	if(_node->boundingBox.intersect(_r))
+	{
+		if(_node->nodeObjects.size() == 1)
+		{
+			_objectsHit.push_back(_node->nodeObjects.front() );
+		}
+		else
+		{
+			if(_node->leftChild != nullptr)
+			{
+				intersectTree(_r, _node->leftChild.get(), _objectsHit);
+			}
 
-	//thisNode->boundingBox.intersect(_r);
-
-	return temp;
+			if(_node->rightChild != nullptr)
+			{
+				intersectTree(_r, _node->rightChild.get(), _objectsHit);
+			}
+		}
+	}
 }
 
 bool BoundingBox::intersect(Ray & ray)
@@ -218,87 +229,126 @@ bool BoundingBox::intersect(Ray & ray)
 		//Get the minimum and maximum that t can be based on this intersectioning concept.
 		//https://www.scratchapixel.com/images/upload/ray-simple-shapes/2dfig.png
 
+	//	double tMin = (minMaxCorners.first.x - ray.GetOrigin().x) / rayDirection.x;
+	//	double tMax = (minMaxCorners.second.x - ray.GetOrigin().x) / rayDirection.x;
 
-		//Do it for x
-		double txMin = (minMaxCorners.first.x - ray.GetOrigin().x) / rayDirection.x;
-		double txMax = (minMaxCorners.second.x - ray.GetOrigin().x) / rayDirection.x;
-
-		double temp;
-
-		if (txMax < txMin)
-		{
-			temp = txMax;
-			txMax = txMin;
-			txMin = temp;
-		}
-
-		double tyMin = (minMaxCorners.first.y - ray.GetOrigin().y) / rayDirection.y;
-		double tyMax = (minMaxCorners.second.y - ray.GetOrigin().y) / rayDirection.y;
+		double tmin = (minMaxCorners.first.x - ray.GetOrigin().x) / rayDirection.x;
+		double tmax = (minMaxCorners.second.x - ray.GetOrigin().x) / rayDirection.x;
 
 
-		//then do it for y
-		if (tyMax < tyMin)
-		{
-			temp = tyMax;
-			tyMax = tyMin;
-			tyMin = temp;
-		}
+		if(tmin > tmax) std::swap(tmin, tmax);
 
+		float tymin = (minMaxCorners.first.y - ray.GetOrigin().y) / rayDirection.y;
+		float tymax = (minMaxCorners.second.y - ray.GetOrigin().y) / rayDirection.y;
 
-		//then do it for z
-		double tzMin = (minMaxCorners.first.z - ray.GetOrigin().z) / rayDirection.z;
-		double tzMax = (minMaxCorners.second.z - ray.GetOrigin().z) / rayDirection.z;
+		if(tymin > tymax) std::swap(tymin, tymax);
 
-
-		if (tzMax < tzMin)
-		{
-			temp = txMax;
-			tzMax = tzMin;
-			tzMin = temp;
-		}
-
-
-		//Here i'm trying to get the largest min and the smallest max values from the potential intersections.
-		double tMin;
-		double tMax;
-
-		if (txMin > tyMin)
-		{
-			tMin = txMin;
-		}
-		else
-		{
-			tMin = tyMin;
-		}
-
-		if (txMax < tyMax)
-		{
-			tMax = txMax;
-		}
-		else
-		{
-			tMax = tyMax;
-		}
-
-
-		if (txMin > tyMin || tyMin > txMax)
-		{
+		if((tmin > tymax) || (tymin > tmax))
 			return false;
-		}
-		if (tMin > tzMax || tzMin > tMax)
-		{
+
+		if(tymin > tmin)
+			tmin = tymin;
+
+		if(tymax < tmax)
+			tmax = tymax;
+
+		float tzmin = (minMaxCorners.first.z - ray.GetOrigin().z) / rayDirection.z;
+		float tzmax = (minMaxCorners.second.z - ray.GetOrigin().z) / rayDirection.z;
+
+		if(tzmin > tzmax) std::swap(tzmin, tzmax);
+
+		if((tmin > tzmax) || (tzmin > tmax))
 			return false;
-		}
-		if (tzMin > tMin) { tMin = tzMin; }
-		if (tzMax < tMax) { tMax = tzMax; }
 
-		//We're good so far.
+		if(tzmin > tmin)
+			tmin = tzmin;
 
-		//tMin is the point of intersection on the ray! (as in the distance t along the ray) Hurray. we've intersected.
-
+		if(tzmax < tmax)
+			tmax = tzmax;
 
 		return true;
 
+		////Do it for x
+		//double txMin = (minMaxCorners.first.x - ray.GetOrigin().x) / rayDirection.x;
+		//double txMax = (minMaxCorners.second.x - ray.GetOrigin().x) / rayDirection.x;
 
-		//NOTES: if tmin at the end is <= 0, the intersection began behind the origin. So will likely trigger if you're firing out from inside a bounding box... !!!
+		//double temp;
+
+		//if (txMax < txMin)
+		//{
+		//	temp = txMax;
+		//	txMax = txMin;
+		//	txMin = temp;
+		//}
+
+		//double tyMin = (minMaxCorners.first.y - ray.GetOrigin().y) / rayDirection.y;
+		//double tyMax = (minMaxCorners.second.y - ray.GetOrigin().y) / rayDirection.y;
+
+
+		////then do it for y
+		//if (tyMax < tyMin)
+		//{
+		//	temp = tyMax;
+		//	tyMax = tyMin;
+		//	tyMin = temp;
+		//}
+
+
+		////then do it for z
+		//double tzMin = (minMaxCorners.first.z - ray.GetOrigin().z) / rayDirection.z;
+		//double tzMax = (minMaxCorners.second.z - ray.GetOrigin().z) / rayDirection.z;
+
+
+		//if (tzMax < tzMin)
+		//{
+		//	temp = tzMax;
+		//	tzMax = tzMin;
+		//	tzMin = temp;
+		//}
+
+
+		////Here i'm trying to get the largest min and the smallest max values from the potential intersections.
+		//double tMin;
+		//double tMax;
+
+		//if (txMin > tyMin)
+		//{
+		//	tMin = txMin;
+		//}
+		//else
+		//{
+		//	tMin = tyMin;
+		//}
+
+		//if (txMax < tyMax)
+		//{
+		//	tMax = txMax;
+		//}
+		//else
+		//{
+		//	tMax = tyMax;
+		//}
+
+
+		//if (txMin > tyMin || tyMin > txMax)
+		//{
+		//	return false;
+		//}
+		//if (tMin > tzMax || tzMin > tMax)
+		//{
+		//	return false;
+		//}
+		//if (tzMin > tMin) { tMin = tzMin; }
+		//if (tzMax < tMax) { tMax = tzMax; }
+
+
+		////We're good so far.
+
+		////tMin is the point of intersection on the ray! (as in the distance t along the ray) Hurray. we've intersected.
+
+
+		//return true;
+
+
+		////NOTES: if tmin at the end is <= 0, the intersection began behind the origin. So will likely trigger if you're firing out from inside a bounding box... !!!
 	}

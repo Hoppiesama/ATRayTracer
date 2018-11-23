@@ -47,7 +47,7 @@ public:
 	BoundingBox boundingBox;
 	std::unique_ptr<Node> leftChild;
 	std::unique_ptr<Node> rightChild;
-	std::vector<Sphere*> nodeObjects;
+	std::vector<Object*> nodeObjects;
 };
 
 
@@ -60,13 +60,20 @@ public:
 	std::unique_ptr<Node> thisNode = std::make_unique<Node>();
 
 
-	void BuildBVH(Node* node, std::vector<Sphere*> objects);
+	void BuildBVH(Node* node, std::vector<Object*> objects);
 
-	std::pair<Vector3, Vector3> calculateMinimumBox(std::vector<Sphere*> objects);
-	void sortObjectsAlongAxis(std::vector<Sphere*>& objects, int _int);
-	std::pair<std::vector<Sphere*>, std::vector<Sphere*>> splitObjects(std::vector<Sphere*> objects, double & bestCost);
+	std::pair<Vector3, Vector3> calculateMinimumBox(std::vector<Object*> objects);
+
+	void sortObjectsAlongAxis(std::vector<Object*>& objects, int _int);
+
+	std::pair<std::vector<Object*>, std::vector<Object*>> splitObjects(std::vector<Object*> objects, double & bestCost);
+
 	double calculateCombinedSurfaceAreas(BoundingBox boxLeft, BoundingBox boxright);
-	std::vector<Sphere*> GetObjectsUpToIndex(std::vector<Sphere*> _objects, int _upToIndex);
-	std::vector<Sphere*> GetObjectsFromIndexToEnd(std::vector<Sphere*> objects, int _upFromIndex);
+
+	std::vector<Object*> GetObjectsUpToIndex(std::vector<Object*> _objects, int _upToIndex);
+
+	std::vector<Object*> GetObjectsFromIndexToEnd(std::vector<Object*> objects, int _upFromIndex);
+
+	void intersectTree(Ray& _r, Node* _node, std::vector<Object*>& _objectsHit);
 };
 

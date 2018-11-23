@@ -22,6 +22,7 @@
 double M_PI = 3.1415926;
 // 1 over pi
 double M_1_PI = 1.0 / M_PI;
+
 //erand48 is not a part of c++ standard in windows, so an alternative...
 double erand48(unsigned short xSubI[3])
 {
@@ -36,16 +37,34 @@ double erand48(unsigned short xSubI[3])
 
 Sphere spheres[] = 
 {
+	////Scene: radius, position, emission, color, material 
+	//Sphere(18, Vector3(100 + 1 - 50 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
+	//Sphere(18, Vector3(-100 + 99 - 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
+	//Sphere(18, Vector3(50 - 50,40.8, 100),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
+	////Sphere(100, Vec(50 -50,40.8,-100 + 170), Vec(),Vec(),           DIFF),//Frnt 
+	//Sphere(18, Vector3(50 -50, 100, 81.6),    Vector3(),Vector3(.75,.75,.75),DIFF),//Botm 
+	//Sphere(18, Vector3(50-50,-100 + 81.6,81.6),Vector3(),Vector3(.75,.75,.75),DIFF),//Top 
+	//Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC),//Mirr 
+	//Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFR),//Glas 
+	//Sphere(16.5, Vector3(0, 52, 15),Vector3(12,12,12),  Vector3(), DIFF) //Lite 
+
 	//Scene: radius, position, emission, color, material 
 	Sphere(1e5, Vector3(1e5 + 1 - 50 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
 	Sphere(1e5, Vector3(-1e5 + 99 - 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
-	Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
-	//Sphere(1e5, Vec(50 -50,40.8,-1e5 + 170), Vec(),Vec(),           DIFF),//Frnt 
-	//Sphere(1e5, Vec(50 -50, 1e5, 81.6),    Vec(),Vec(.75,.75,.75),DIFF),//Botm 
-	//Sphere(1e5, Vec(50-50,-1e5 + 81.6,81.6),Vec(),Vec(.75,.75,.75),DIFF),//Top 
+	//Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
+	Sphere(1e5, Vector3(50 -50,40.8,-1e5 + 170), Vector3(),Vector3(),           DIFF),//Frnt 
+
+	Sphere(1e5, Vector3(50 -50, 1e5, 81.6),    Vector3(),Vector3(.75,.75,.75),DIFF),//Botm 
+	Sphere(1e5, Vector3(0.0, -1e5 + 81.6,81.6),Vector3(),Vector3(.75,.75,.75),DIFF),//Top 
 	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC),//Mirr 
 	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFR),//Glas 
-	Sphere(16.5, Vector3(0, 52, 15),Vector3(12,12,12),  Vector3(), DIFF) //Lite 
+
+	Sphere(16.5, Vector3(0.0, 50.0, 0.0),		Vector3(12,12,12),  Vector3(), DIFF), //Lite 
+
+	Sphere(16.5,Vector3(12,16.5,47),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Mirr 
+	Sphere(16.5,Vector3(24,6.5,12),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
+	Sphere(16.5,Vector3(-12,11.5,47),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Mirr 
+	Sphere(16.5,Vector3(-24 ,22,22),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
 };
 
 inline double clamp(double x) 
@@ -72,29 +91,65 @@ inline int toGammaCorrectedInt(double x)
 
 inline bool intersect(const Ray &r, double &t, int &id)
 {
-	double n = sizeof(spheres) / sizeof(Sphere), d, inf = t = 1e20;
-	for(int i = int(n); i--;) if((d = spheres[i].intersect(r)) && d<t) { t = d; id = i; }
+	double n = sizeof(spheres) / sizeof(Sphere);
+	double d;
+	double inf = t = 1e20;
+	for(int i = int(n); i--;)
+		if((d = spheres[i].intersect(r)) && d<t)
+		{ t = d; id = i; }
+
 	return t<inf;
 }
 
-Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
+inline bool intersect(const Ray &r, double &t, int &vectorIndex, std::vector<Object*> objects)
+{
+	//double n = sizeof(spheres) / sizeof(Sphere);
+	double n = objects.size();
+	double d;
+	double inf = t = DBL_MAX;
+
+
+	for(int i = (int)objects.size() - 1; i >= 0; i--)
+	{
+		d = objects.at(i)->intersect(r);
+
+		if(d < t && d != 0.0)
+		{ 
+			t = d; 
+			vectorIndex = i; 
+		}
+	}
+	return t<inf;
+}
+
+Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Object*> objects, BoundingVolumeHierarchy* bvh)
 {
 	double t;                   // distance to intersection 
 	int id = 0;					// id of intersected object 
 
 	//TODO - replace the below with bvh.getObjectsToTest(Ray& theRay)
 	//then run new version of "intersect" with the "id" being replaced by an Object* to be assigned the first object hit. ALSO, pass in the returned vector of objects from the bvh above.
-	if(!intersect(r, t, id))
+
+	//if(!intersect(r, t, id))
+	//{
+	//	return Vector3();
+	//}
+
+	if(!intersect(r, t, id, objects))
 	{
-		return Vector3(); // if miss, return black 
+		return Vector3(0.0, 0.0,0.0); // if miss, return black 
 	}
 
-	const Sphere &hitObj = spheres[id];        // the hit object 
+	//const Sphere &hitObj = spheres[id];        // the hit object 
+	const Object* hitObj = objects.at(id);
 
 	Vector3 hitPoint = r.GetOrigin() + r.GetDirection()*t;
-	Vector3 normal = (hitPoint - hitObj.position).normalize();
+	Vector3 normal = (hitPoint - hitObj->position).normalize();
 	Vector3 nl = normal.dot(r.GetDirection()) < 0 ? normal : normal * -1;
-	Vector3 objectColour = hitObj.colour;
+	Vector3 objectColour = hitObj->colour;
+
+	//TODO - remove this, it's super simple to test BVH
+	//return hitObj->colour;
 
 	//double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z; // max refl 
 
@@ -124,11 +179,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 		}
 		else
 		{
-			return hitObj.emission; //R.R. 
+			return hitObj->emission; //R.R. 
 		}
 	}
 
-	if(hitObj.refl == DIFF)
+	if(hitObj->refl == DIFF)
 	{                  // Ideal DIFFUSE reflection 
 		double r1 = 2 * M_PI*erand48(xSubi);
 		double r2 = erand48(xSubi);
@@ -152,18 +207,32 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 		Vector3 v = w.cross(u); // % = cross
 
 		// TOM!!! - is this an implementation of the monte carlo thing?
-
 		//New direction randomised slightly due to diffuse colour.
 		// u * cos(randomNo betwen 0 and 2Pi) + v * sin(same randomNo between 0 and 2Pi) + w * sqrt(1 - randomNo between 0.0 & 1.0) . normalized
 		Vector3 newDirection = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).normalize();
 
-		return hitObj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, newDirection), depth, xSubi));
+		Ray ray(hitPoint, newDirection);
+
+		objects.clear();
+
+		bvh->intersectTree(ray, bvh->thisNode.get(), objects);
+
+		return hitObj->emission + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
-	else if(hitObj.refl == SPEC)            // Ideal SPECULAR reflection 
+	else if(hitObj->refl == SPEC)            // Ideal SPECULAR reflection 
 	{
+
+		Vector3 newDirection = r.GetDirection() - normal * 2 * normal.dot(r.GetDirection());
+
+		Ray ray(hitPoint, newDirection);
+
+		objects.clear();
+
+		bvh->intersectTree(ray, bvh->thisNode.get(), objects);
+
 		//r.GetDirection() - normal * 2 * normal.dot(r.GetDirection()) is a mirrored angle from the normal, e.g. angle of incidence and angle of reflection from the normal are the same.
 		//based on the idea shown here https://youtu.be/ytRrjf9OPHg?t=1031 ...
-		return hitObj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, r.GetDirection() - normal * 2 * normal.dot(r.GetDirection())), depth, xSubi));
+		return hitObj->emission + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
 
 	//dielectric REFRACTION 
@@ -207,7 +276,9 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 	"total internal reflection."	*/
 	if(cosine2Theta < 0)
 	{
-		return hitObj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi));
+		objects.clear();
+		bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
+		return hitObj->emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh));
 	}
 		
 	Vector3 tdir;
@@ -243,26 +314,40 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi)
 	double probabilityOfRefracting = fresnelReflectance / probabilityOfReflecting;
 	double TP = Tr / (1 - probabilityOfReflecting);
 
+
+
 	if(depth > 2)
 	{
 		if(erand48(xSubi) < probabilityOfReflecting)
 		{
-			return hitObj.emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi)*probabilityOfRefracting);
+			objects.clear();
+			bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
+
+			return hitObj->emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh)*probabilityOfRefracting);
 		}
 		else
 		{
-			return hitObj.emission + objectColour.multiplyBy(radiance(Ray(hitPoint, tdir), depth, xSubi)*TP);
+			Ray ray(hitPoint, tdir);
+			objects.clear();
+			bvh->intersectTree(ray, bvh->thisNode.get(), objects);
+
+			return hitObj->emission + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh)*TP);
 		}
 	}
 	else
 	{
-		return hitObj.emission + objectColour.multiplyBy((radiance(reflRay, depth, xSubi)*fresnelReflectance + radiance(Ray(hitPoint, tdir), depth, xSubi)*Tr) );
+		Ray ray2(hitPoint, tdir);
+
+		objects.clear();
+		bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
+		bvh->intersectTree(ray2, bvh->thisNode.get(), objects);
+		return hitObj->emission + objectColour.multiplyBy((radiance(reflRay, depth, xSubi, objects, bvh) * fresnelReflectance + radiance(ray2, depth, xSubi, objects, bvh)*Tr) );
 	}
 }
 
 
 
-void threadOver(int samples, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera _cam, std::atomic<int>* _counter, std::string* _string)
+void threadOver(int samples, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera _cam, std::atomic<int>* _counter, std::string* _string, BoundingVolumeHierarchy* _bvh)
 {
 	Vector3 cx = _cam.GetRightFOVAdjusted();
 	//preserve aspect ration based on camRight
@@ -304,7 +389,13 @@ void threadOver(int samples, int yStart, int yEnd, int width, int height, std::v
 							+ _cam.lookDirection;
 						//push the offsets on the camera's "forward"
 
-						r = r + radiance(Ray(_cam.position, direction.normalize()), 0, Xi) * (1. / samples);
+						std::vector<Object*> objectsHit;
+
+						Ray ray(_cam.position, direction.normalize());
+
+						_bvh->intersectTree(ray, _bvh->thisNode.get(), objectsHit);
+
+						r = r + radiance(Ray(_cam.position, direction.normalize()), 0, Xi, objectsHit, _bvh) * (1. / samples);
 					}
 					(pixelColour)->at(i) = (pixelColour)->at(i) + Vector3(clamp(r.x), clamp(r.y), clamp(r.z))*.25;
 				}
@@ -318,13 +409,14 @@ void threadOver(int samples, int yStart, int yEnd, int width, int height, std::v
 
 int main(int argc, char *argv[])
 {
-	int width = 1024, height = 768, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
+	int width = 640, height = 480, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
 
 	BoundingVolumeHierarchy bvh;
 
-	std::vector<Sphere*> objectsVector;
+	std::vector<Object*> objectsVector;
 
-	for(int i = 0; i < 6; i++)
+	//TODO -remove the hard coded spheres array and use a vector so we can "get size" here and scale it
+	for(int i = 0; i <12; i++)
 	{
 		objectsVector.push_back(&spheres[i]);
 	}
@@ -336,10 +428,10 @@ int main(int argc, char *argv[])
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
-	Camera cam(Vector3(0, 52, 240), Vector3(0, 10, -1), width, height, fov); // cam pos, position to look at
+	Camera cam(Vector3(0, 52, -240), Vector3(0, 10, -1), width, height, fov); // cam pos, position to look at
 	
-	bool threaded = false;
-	bool useBVH = false;
+	bool threaded = true;
+	bool useBVH = true;
 
 	//used for output;
 	std::vector<Vector3> pixelColour;
@@ -354,10 +446,10 @@ int main(int argc, char *argv[])
 
 		std::atomic<int> finishedThreads = 0;
 
-		std::thread thread = std::thread(threadOver, samps, 0, height / 4, width, height, &pixelColour, cam, &finishedThreads, &t1);
-		std::thread thread2 = std::thread(threadOver, samps, height / 4, (height / 4) * 2, width, height, &pixelColour, cam, &finishedThreads, &t2);
-		std::thread thread3 = std::thread(threadOver, samps, (height / 4) * 2, (height / 4) * 3, width, height, &pixelColour, cam, &finishedThreads, &t3);
-		std::thread thread4 = std::thread(threadOver, samps, (height / 4) * 3, height, width, height, &pixelColour, cam, &finishedThreads, &t4);
+		std::thread thread = std::thread(threadOver, samps, 0, height / 4, width, height, &pixelColour, cam, &finishedThreads, &t1, &bvh);
+		std::thread thread2 = std::thread(threadOver, samps, height / 4, (height / 4) * 2, width, height, &pixelColour, cam, &finishedThreads, &t2, &bvh);
+		std::thread thread3 = std::thread(threadOver, samps, (height / 4) * 2, (height / 4) * 3, width, height, &pixelColour, cam, &finishedThreads, &t3, &bvh);
+		std::thread thread4 = std::thread(threadOver, samps, (height / 4) * 3, height, width, height, &pixelColour, cam, &finishedThreads, &t4, &bvh);
 
 		while(finishedThreads < 4)
 		{
@@ -410,10 +502,16 @@ int main(int argc, char *argv[])
 									+ cy * (((subPixelY + .5 + dy) / 2 + y) / height - .5)
 									+ cam.lookDirection;
 
-								Object* object = bvh.intersectTree(Ray(cam.position, direction.normalize());
+								std::vector<Object*> objectsHit;
+
+								Ray ray(cam.position, direction.normalize());
+
+								bvh.intersectTree(ray, bvh.thisNode.get(), objectsHit);
 
 								//push the offsets on the camera's "forward"
-								totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi)*(1. / samps);
+								totalRadiance = totalRadiance + radiance( Ray(cam.position, direction.normalize() ), 0, Xi, objectsHit, &bvh)*(1. / samps );
+
+								objectsHit.clear();
 							}
 							pixelColour[i] = pixelColour[i] + Vector3(clamp(totalRadiance.x), clamp(totalRadiance.y), clamp(totalRadiance.z))*.25;
 						}
@@ -449,8 +547,15 @@ int main(int argc, char *argv[])
 								Vector3 direction = cx * (((subPixelX + .5 + dx) / 2 + x) / width - .5)
 									+ cy * (((subPixelY + .5 + dy) / 2 + y) / height - .5)
 									+ cam.lookDirection;
+
+								std::vector<Object*> objectsHit;
+
+								Ray ray(cam.position, direction.normalize() );
+
+								bvh.intersectTree(ray, bvh.thisNode.get(), objectsHit);
+
 								//push the offsets on the camera's "forward"
-								totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi)*(1. / samps);
+								totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi, objectsHit, &bvh)*(1. / samps);
 							}
 							pixelColour[i] = pixelColour[i] + Vector3(clamp(totalRadiance.x), clamp(totalRadiance.y), clamp(totalRadiance.z))*.25;
 						}

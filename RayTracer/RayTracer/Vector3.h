@@ -35,6 +35,11 @@ public:
 		return Vector3(x / vec.x, y / vec.y, z / vec.z);
 	}
 
+	friend Vector3 operator/ (const double d, const Vector3& vec)
+	{
+		return Vector3(d / vec.x, d / vec.y, d / vec.z);
+	};
+
 	Vector3 operator + (const double &d) const
 	{
 		return Vector3(x + d, y + d, z + d);
@@ -44,7 +49,7 @@ public:
 	{ 
 		return Vector3(x + vec.x, y + vec.y, z + vec.z);
 	}
-	Vector3 operator-(const Vector3 &vec) const
+	Vector3 operator - (const Vector3 &vec) const
 	{ 
 		return Vector3(x - vec.x, y - vec.y, z - vec.z);
 	}
@@ -59,10 +64,7 @@ public:
 		return Vector3(y*b.z - z * b.y, z*b.x - x * b.z, x*b.y - y * b.x);
 	}
 
-	double magnitude() const
-	{
-		return (double)sqrt(x*x + y*y + z*z);
-	}
+
 
 
 
@@ -76,6 +78,11 @@ public:
 	double dot(const Vector3 &b) const 
 	{ 
 		return x * b.x + y * b.y + z * b.z; 
+	}
+
+	double magnitude() const
+	{
+		return (double)sqrt(x*x + y * y + z * z);
 	}
 
 	Vector3& normalize() 

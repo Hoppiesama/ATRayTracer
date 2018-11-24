@@ -19,6 +19,13 @@ public:
 
 	const Vector3 Up() { return { 0.0f, 1.0f, 0.0f }; }
 
+	static Vector3 cross(Vector3 A, Vector3 B)
+	{
+		return Vector3(A.y * B.z - A.z * B.y,
+			A.z * B.x - A.x * B.z,
+			A.x * B.y - A.y * B.x);
+	}
+
 	//Operators//
 	Vector3 operator * (const Vector3 &vec) const
 	{

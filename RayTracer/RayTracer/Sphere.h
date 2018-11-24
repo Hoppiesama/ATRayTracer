@@ -10,7 +10,7 @@ public:
 	~Sphere() = default;
 
 	//Sphere(Vector3 centre, double _radius) { position = centre; radius = _radius; }
-	//virtual bool hit(const ray& r, float tmin, float tmax, hit_record& rec) const;
+	//virtual bool hit(const ray& r, double tmin, double tmax, hit_record& rec) const;
 
 	double radius;       // radius 
 

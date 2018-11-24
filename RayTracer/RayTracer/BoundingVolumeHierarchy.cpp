@@ -238,8 +238,8 @@ bool BoundingBox::intersect(Ray & ray)
 
 		if(tmin > tmax) std::swap(tmin, tmax);
 
-		float tymin = (minMaxCorners.first.y - ray.GetOrigin().y) / rayDirection.y;
-		float tymax = (minMaxCorners.second.y - ray.GetOrigin().y) / rayDirection.y;
+		double tymin = (minMaxCorners.first.y - ray.GetOrigin().y) / rayDirection.y;
+		double tymax = (minMaxCorners.second.y - ray.GetOrigin().y) / rayDirection.y;
 
 		if(tymin > tymax) std::swap(tymin, tymax);
 
@@ -252,8 +252,8 @@ bool BoundingBox::intersect(Ray & ray)
 		if(tymax < tmax)
 			tmax = tymax;
 
-		float tzmin = (minMaxCorners.first.z - ray.GetOrigin().z) / rayDirection.z;
-		float tzmax = (minMaxCorners.second.z - ray.GetOrigin().z) / rayDirection.z;
+		double tzmin = (minMaxCorners.first.z - ray.GetOrigin().z) / rayDirection.z;
+		double tzmax = (minMaxCorners.second.z - ray.GetOrigin().z) / rayDirection.z;
 
 		if(tzmin > tzmax) std::swap(tzmin, tzmax);
 

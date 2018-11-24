@@ -11,6 +11,7 @@
 #include <atomic>
 #include <string>
 #include "BoundingVolumeHierarchy.h"
+#include "ObjectImporter.h"
 
 #include <thread>
 
@@ -104,7 +105,6 @@ inline bool intersect(const Ray &r, double &t, int &id)
 inline bool intersect(const Ray &r, double &t, int &vectorIndex, std::vector<Object*> objects)
 {
 	//double n = sizeof(spheres) / sizeof(Sphere);
-	double n = objects.size();
 	double d;
 	double inf = t = DBL_MAX;
 
@@ -366,8 +366,8 @@ void threadOver(int samples, int yStart, int yEnd, int width, int height, std::v
 			//TODO - remove sub-pixel sampling.
 			//TODO - remove multi-sampling.
 
-			int result1 =  (int)( ( (float)(y- yStart) / (float)(yEnd - yStart) * 100) );
-			int result2 = (int)( ( (float)x / (float)width) * 100);
+			int result1 =  (int)( ( (double)(y- yStart) / (double)(yEnd - yStart) * 100) );
+			int result2 = (int)( ( (double)x / (double)width) * 100);
 
 			(*_string) = std::to_string(result1) + "." + std::to_string(result2);
 
@@ -412,6 +412,12 @@ int main(int argc, char *argv[])
 	int width = 640, height = 480, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
 
 	BoundingVolumeHierarchy bvh;
+
+	//ObjectImporter importer;
+
+	//Model testObj;
+
+	//importer.Import("test", &testObj);
 
 	std::vector<Object*> objectsVector;
 

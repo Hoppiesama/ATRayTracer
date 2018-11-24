@@ -125,12 +125,14 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="ObjectImporter.h" />
     <ClInclude Include="Plane.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Vector3.h" />
+    <ClInclude Include="VertexStructs.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BoundingVolumeHierarchy.cpp" />
@@ -138,7 +140,9 @@
     <ClCompile Include="LightSource.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Material.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="ObjectImporter.cpp" />
     <ClCompile Include="Plane.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Ray.cpp" />

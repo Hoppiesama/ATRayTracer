@@ -9,7 +9,7 @@ public:
 	~Ray() = default;
 
 	//p(t) = A + t*B
-	Vector3 pointAtParameter(float t) const { return origin + (direction * t); }
+	Vector3 pointAtParameter(double t) const { return origin + (direction * t); }
 
 	Vector3 GetOrigin() const { return origin; }
 	Vector3 GetDirection() const { return direction; }

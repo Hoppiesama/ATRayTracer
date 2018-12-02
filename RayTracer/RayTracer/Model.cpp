@@ -1,14 +1,36 @@
 #include "Model.h"
 
-Model::Model()
+Model::Model(Vector3 _position)
 {
-	//TODO - this instanciates a simple pyramid. This will be replaced by the model/mesh importer.
-	vertices;
-	indices;
+	position = _position;
 }
 
 Model::~Model()
 {
+}
+
+void Model::InitTriangles()
+{
+	int size = (int)indices.size() / 3;
+
+	for(int x = 0; x < size; x++)
+	{
+		faceIndex.push_back(3);
+	}
+
+	int incrementor = 0;
+
+	for(int a = 0; a < faceIndex.size(); a++)
+	{
+		//triangles.push_back(&Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]));
+		triangles.push_back(std::move(Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]])));
+		triangles.back().colour = colour;
+		triangles.back().emission = emission;
+		triangles.back().material = material;
+		triangles.back().refl = refl;
+		triangles.back().position = { 0.0,0.0,0.0 };
+		incrementor += faceIndex[a];
+	}
 }
 
 // Source: https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution

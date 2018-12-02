@@ -31,5 +31,6 @@ public:
 	virtual double GetHighestZVert() = 0;
 
 private:
+
 };
 

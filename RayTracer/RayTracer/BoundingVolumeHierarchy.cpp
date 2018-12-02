@@ -222,6 +222,8 @@ void BoundingVolumeHierarchy::intersectTree(Ray& _r, Node* _node, std::vector<Ob
 	}
 }
 
+
+
 bool BoundingBox::intersect(Ray & ray)
 	{
 		Vector3 rayDirection = ray.GetDirection();
@@ -229,8 +231,6 @@ bool BoundingBox::intersect(Ray & ray)
 		//Get the minimum and maximum that t can be based on this intersectioning concept.
 		//https://www.scratchapixel.com/images/upload/ray-simple-shapes/2dfig.png
 
-	//	double tMin = (minMaxCorners.first.x - ray.GetOrigin().x) / rayDirection.x;
-	//	double tMax = (minMaxCorners.second.x - ray.GetOrigin().x) / rayDirection.x;
 
 		double tmin = (minMaxCorners.first.x - ray.GetOrigin().x) / rayDirection.x;
 		double tmax = (minMaxCorners.second.x - ray.GetOrigin().x) / rayDirection.x;
@@ -267,88 +267,4 @@ bool BoundingBox::intersect(Ray & ray)
 			tmax = tzmax;
 
 		return true;
-
-		////Do it for x
-		//double txMin = (minMaxCorners.first.x - ray.GetOrigin().x) / rayDirection.x;
-		//double txMax = (minMaxCorners.second.x - ray.GetOrigin().x) / rayDirection.x;
-
-		//double temp;
-
-		//if (txMax < txMin)
-		//{
-		//	temp = txMax;
-		//	txMax = txMin;
-		//	txMin = temp;
-		//}
-
-		//double tyMin = (minMaxCorners.first.y - ray.GetOrigin().y) / rayDirection.y;
-		//double tyMax = (minMaxCorners.second.y - ray.GetOrigin().y) / rayDirection.y;
-
-
-		////then do it for y
-		//if (tyMax < tyMin)
-		//{
-		//	temp = tyMax;
-		//	tyMax = tyMin;
-		//	tyMin = temp;
-		//}
-
-
-		////then do it for z
-		//double tzMin = (minMaxCorners.first.z - ray.GetOrigin().z) / rayDirection.z;
-		//double tzMax = (minMaxCorners.second.z - ray.GetOrigin().z) / rayDirection.z;
-
-
-		//if (tzMax < tzMin)
-		//{
-		//	temp = tzMax;
-		//	tzMax = tzMin;
-		//	tzMin = temp;
-		//}
-
-
-		////Here i'm trying to get the largest min and the smallest max values from the potential intersections.
-		//double tMin;
-		//double tMax;
-
-		//if (txMin > tyMin)
-		//{
-		//	tMin = txMin;
-		//}
-		//else
-		//{
-		//	tMin = tyMin;
-		//}
-
-		//if (txMax < tyMax)
-		//{
-		//	tMax = txMax;
-		//}
-		//else
-		//{
-		//	tMax = tyMax;
-		//}
-
-
-		//if (txMin > tyMin || tyMin > txMax)
-		//{
-		//	return false;
-		//}
-		//if (tMin > tzMax || tzMin > tMax)
-		//{
-		//	return false;
-		//}
-		//if (tzMin > tMin) { tMin = tzMin; }
-		//if (tzMax < tMax) { tMax = tzMax; }
-
-
-		////We're good so far.
-
-		////tMin is the point of intersection on the ray! (as in the distance t along the ray) Hurray. we've intersected.
-
-
-		//return true;
-
-
-		////NOTES: if tmin at the end is <= 0, the intersection began behind the origin. So will likely trigger if you're firing out from inside a bounding box... !!!
 	}

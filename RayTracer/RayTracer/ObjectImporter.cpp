@@ -67,7 +67,9 @@ bool ObjectImporter::Import(std::string _fileName, Model* _object )
 	}*/
 
 	std::ifstream inFile(fileName);
+
 	std::string line;
+
 	while(std::getline(inFile, line))
 	{
 		std::stringstream lineStream{ line };
@@ -121,9 +123,11 @@ bool ObjectImporter::Import(std::string _fileName, Model* _object )
 			indices.push_back((unsigned short)std::stoi(value1vec.front()));
 			indices.push_back((unsigned short)std::stoi(value2vec.front()));
 			indices.push_back((unsigned short)std::stoi(value3vec.front()));
+
 			vertexTextureIndices.push_back((unsigned short)std::stoi(value1vec[1]));
 			vertexTextureIndices.push_back((unsigned short)std::stoi(value2vec[1]));
 			vertexTextureIndices.push_back((unsigned short)std::stoi(value3vec[1]));
+
 			vertexNormalIndices.push_back((unsigned short)std::stoi(value1vec[2]));
 			vertexNormalIndices.push_back((unsigned short)std::stoi(value2vec[2]));
 			vertexNormalIndices.push_back((unsigned short)std::stoi(value3vec[2]));
@@ -200,8 +204,6 @@ bool ObjectImporter::Import(std::string _fileName, Model* _object )
 	vertexPositions.clear();
 	vertexTextureUV.clear();
 	vertexNormals.clear();
-
-
 
 	return true;
 }

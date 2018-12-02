@@ -413,11 +413,9 @@ int main(int argc, char *argv[])
 
 	BoundingVolumeHierarchy bvh;
 
-	//ObjectImporter importer;
+	ObjectImporter importer;
 
-	//Model testObj;
 
-	//importer.Import("test", &testObj);
 
 	std::vector<Object*> objectsVector;
 
@@ -427,7 +425,20 @@ int main(int argc, char *argv[])
 		objectsVector.push_back(&spheres[i]);
 	}
 
+	Model testObj({ 1.0, 1.0, 1.0 });
+	importer.Import("cube.obj", &testObj);
+	testObj.InitTriangles();
+
+	for(int i = 0; i < testObj.getTriangles().size(); i++)
+	{
+		objectsVector.push_back(&testObj.getTriangles().at(i) );
+	}
+
+	//objectsVector.insert(std::end(objectsVector), std::begin(testObj.getTriangles()), std::end(testObj.getTriangles()));
+
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
+
+
 
 	samps = 8; //override sample!
 

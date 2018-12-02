@@ -38,17 +38,6 @@ double erand48(unsigned short xSubI[3])
 
 Sphere spheres[] = 
 {
-	////Scene: radius, position, emission, color, material 
-	//Sphere(18, Vector3(100 + 1 - 50 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
-	//Sphere(18, Vector3(-100 + 99 - 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
-	//Sphere(18, Vector3(50 - 50,40.8, 100),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
-	////Sphere(100, Vec(50 -50,40.8,-100 + 170), Vec(),Vec(),           DIFF),//Frnt 
-	//Sphere(18, Vector3(50 -50, 100, 81.6),    Vector3(),Vector3(.75,.75,.75),DIFF),//Botm 
-	//Sphere(18, Vector3(50-50,-100 + 81.6,81.6),Vector3(),Vector3(.75,.75,.75),DIFF),//Top 
-	//Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC),//Mirr 
-	//Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFR),//Glas 
-	//Sphere(16.5, Vector3(0, 52, 15),Vector3(12,12,12),  Vector3(), DIFF) //Lite 
-
 	//Scene: radius, position, emission, color, material 
 	Sphere(1e5, Vector3(1e5 + 1 - 50 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
 	Sphere(1e5, Vector3(-1e5 + 99 - 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
@@ -90,24 +79,11 @@ inline int toGammaCorrectedInt(double x)
 	return int(pow(clamp(x), 1 / 2.2) * 255 + .5); 
 }
 
-inline bool intersect(const Ray &r, double &t, int &id)
-{
-	double n = sizeof(spheres) / sizeof(Sphere);
-	double d;
-	double inf = t = 1e20;
-	for(int i = int(n); i--;)
-		if((d = spheres[i].intersect(r)) && d<t)
-		{ t = d; id = i; }
-
-	return t<inf;
-}
 
 inline bool intersect(const Ray &r, double &t, int &vectorIndex, std::vector<Object*> objects)
 {
-	//double n = sizeof(spheres) / sizeof(Sphere);
 	double d;
 	double inf = t = DBL_MAX;
-
 
 	for(int i = (int)objects.size() - 1; i >= 0; i--)
 	{
@@ -127,31 +103,43 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	double t;                   // distance to intersection 
 	int id = 0;					// id of intersected object 
 
-	//TODO - replace the below with bvh.getObjectsToTest(Ray& theRay)
-	//then run new version of "intersect" with the "id" being replaced by an Object* to be assigned the first object hit. ALSO, pass in the returned vector of objects from the bvh above.
-
-	//if(!intersect(r, t, id))
-	//{
-	//	return Vector3();
-	//}
-
 	if(!intersect(r, t, id, objects))
 	{
 		return Vector3(0.0, 0.0,0.0); // if miss, return black 
 	}
 
 	//const Sphere &hitObj = spheres[id];        // the hit object 
-	const Object* hitObj = objects.at(id);
+	Object* hitObj = objects.at(id);
 
 	Vector3 hitPoint = r.GetOrigin() + r.GetDirection()*t;
-	Vector3 normal = (hitPoint - hitObj->position).normalize();
+
+	Vector3 normal;
+
+	if(hitObj->type == Sph)
+	{
+		normal = (hitPoint - hitObj->position).normalize();
+	}
+	else if(hitObj->type == Mod)
+	{
+		//Triangle* temp = dynamic_cast<Triangle>(*hitObj);
+		Triangle* panim = dynamic_cast<Triangle*>(hitObj);
+
+		Vector3 v0v1 = panim->vertB.pos - panim->vertA.pos;
+		Vector3 v0v2 = panim->vertC.pos - panim->vertA.pos;
+
+		v0v1 = v0v1.normalize();
+		v0v2 = v0v2.normalize();
+		// no need to normalize
+		normal = v0v1.cross(v0v2); // N 
+	}
+
+	//Vector3 normal = (hitPoint - hitObj->position).normalize();
 	Vector3 nl = normal.dot(r.GetDirection()) < 0 ? normal : normal * -1;
 	Vector3 objectColour = hitObj->colour;
 
 	//TODO - remove this, it's super simple to test BVH
 	//return hitObj->colour;
 
-	//double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z; // max refl 
 
 	double probability;
 	// Get the highest colour value to determine likelihood of continuing in russian roulette.
@@ -346,7 +334,6 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 }
 
 
-
 void threadOver(int samples, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera _cam, std::atomic<int>* _counter, std::string* _string, BoundingVolumeHierarchy* _bvh)
 {
 	Vector3 cx = _cam.GetRightFOVAdjusted();
@@ -412,12 +399,9 @@ int main(int argc, char *argv[])
 	int width = 640, height = 480, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
 
 	BoundingVolumeHierarchy bvh;
-
 	ObjectImporter importer;
-
-
-
 	std::vector<Object*> objectsVector;
+
 
 	//TODO -remove the hard coded spheres array and use a vector so we can "get size" here and scale it
 	for(int i = 0; i <12; i++)
@@ -425,27 +409,28 @@ int main(int argc, char *argv[])
 		objectsVector.push_back(&spheres[i]);
 	}
 
-	Model testObj({ 1.0, 1.0, 1.0 });
+	Model testObj({ 26.0, 52.0, -50.0 });
+	testObj.colour = Vector3(.25,.75,.75) ;
+	testObj.refl = DIFF;
+	testObj.type = Mod;
 	importer.Import("cube.obj", &testObj);
 	testObj.InitTriangles();
+
 
 	for(int i = 0; i < testObj.getTriangles().size(); i++)
 	{
 		objectsVector.push_back(&testObj.getTriangles().at(i) );
 	}
 
-	//objectsVector.insert(std::end(objectsVector), std::begin(testObj.getTriangles()), std::end(testObj.getTriangles()));
 
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
 
-
-
-	samps = 8; //override sample!
+	samps = 16; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
-	Camera cam(Vector3(0, 52, -240), Vector3(0, 10, -1), width, height, fov); // cam pos, position to look at
+	Camera cam(Vector3(0, 52, -124), Vector3(0, 10, -1), width, height, fov); // cam pos, position to look at
 	
 	bool threaded = true;
 	bool useBVH = true;

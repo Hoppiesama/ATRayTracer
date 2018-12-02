@@ -17,6 +17,12 @@ public:
 	Vertex3 vertB;
 	Vertex3 vertC;
 
+	void offsetPositions()
+	{
+		vertA.pos = vertA.pos + position;
+		vertB.pos = vertB.pos + position;
+		vertC.pos = vertC.pos + position;
+	}
 
 	virtual double GetLowestXVert() override
 	{ 
@@ -116,6 +122,7 @@ public:
 		//V0 is always the root vertes, must ensure v1 and v2 are in an anticlockwise ordering.
 		Vector3 v0v1 = vertB.pos - vertA.pos;
 		Vector3 v0v2 = vertC.pos - vertA.pos;
+
 		// no need to normalize
 		Vector3 triangleNormal = v0v1.cross(v0v2); // N 
 		double area2 = triangleNormal.magnitude();
@@ -123,44 +130,94 @@ public:
 		// Step 1: finding P
 		// check if ray and plane are parallel ?
 		double NdotRayDirection = triangleNormal.dot(r.GetDirection());
-		if(fabs(NdotRayDirection) < 0.001) // almost 0 
+
+		if(fabs(NdotRayDirection) < DBL_EPSILON) // almost 0 
 			return false; // they are parallel so they don't intersect ! 
 
-						  // compute d parameter using equation 2
+		
+		// compute d parameter using equation 2
 		double d = triangleNormal.dot(vertA.pos);
 
 		// compute t (equation 3)
 		double t = (triangleNormal.dot(r.GetOrigin()) + d) / NdotRayDirection;
 
 		// check if the triangle is in behind the ray
-		if(t < 0) return false; // the triangle is behind 
+		if(t < 0) return 0.0; // the triangle is behind 
 
-								// compute the intersection point using equation 1
+		// compute the intersection point using equation 1
 		Vector3 hitPoint = r.GetOrigin() + r.GetDirection() * t;
 
 		// Step 2: inside-outside test
 		Vector3 insideOutCheck; // vector perpendicular to triangle's plane 
 
-								// edge 0
-		Vector3 edge0 = vertB.pos - vertA.pos;
-		Vector3 vp0 = hitPoint - vertA.pos;
-		insideOutCheck = edge0.cross(vp0);
-		if(triangleNormal.dot(insideOutCheck) < 0) return false; // P is on the right side 
+		//// edge 0
+		//Vector3 edge0 = vertB.pos - vertA.pos;
+		//Vector3 vp0 = hitPoint - vertA.pos;
+		//insideOutCheck = edge0.cross(vp0);
+		//if(triangleNormal.dot(insideOutCheck) < 0) return 0.0; // P is on the right side 
 
-																 // edge 1
-		Vector3 edge1 = vertC.pos - vertB.pos;
-		Vector3 vp1 = hitPoint - vertB.pos;
-		insideOutCheck = edge1.cross(vp1);
-		if(triangleNormal.dot(insideOutCheck) < 0)  return false; // P is on the right side 
+		//// edge 1
+		//Vector3 edge1 = vertC.pos - vertB.pos;
+		//Vector3 vp1 = hitPoint - vertB.pos;
+		//insideOutCheck = edge1.cross(vp1);
+		//if(triangleNormal.dot(insideOutCheck) < 0)  return 0.0; // P is on the right side 
 
-																  // edge 2
-		Vector3 edge2 = vertA.pos - vertC.pos;
-		Vector3 vp2 = hitPoint - vertC.pos;
-		insideOutCheck = edge2.cross(vp2);
-		if(triangleNormal.dot(insideOutCheck) < 0) return false; // P is on the right side; 
+		//// edge 2
+		//Vector3 edge2 = vertA.pos - vertC.pos;
+		//Vector3 vp2 = hitPoint - vertC.pos;
+		//insideOutCheck = edge2.cross(vp2);
+		//if(triangleNormal.dot(insideOutCheck) < 0) return 0.0; // P is on the right side; 
 
-		return true; // this ray hits the triangle 
+
+		if(t > DBL_EPSILON) // ray intersection
+		{
+			return t;
+		}
+		else // This means that there is a line intersection but not a ray intersection.
+		{
+			return 0.0;
+		}
 	}
+
+	/*
+	//double intersect(const Ray& r) const override
+	//{
+	//	const float EPSILON = 0.0000001;
+
+	//	Vector3 edge1, edge2, h, s, q;
+	//	float a, f, u, v;
+
+	//	edge1 = vertB.pos - vertA.pos;
+	//	edge2 = vertC.pos - vertA.pos;
+
+	//	edge1 = edge1.normalize();
+	//	edge2 = edge2.normalize();
+
+	//	h = r.GetDirection().cross(edge2);
+	//	a = edge1.dot(h);
+	//	if(a > -EPSILON && a < EPSILON)
+	//		return false;    // This ray is parallel to this triangle.
+	//	f = 1.0 / a;
+	//	s = r.GetOrigin() - vertA.pos;
+	//	u = f * (s.dot(h));
+	//	if(u < 0.0 || u > 1.0)
+	//		return false;
+	//	q = s.cross(edge1);
+	//	v = f * r.GetDirection().dot(q);
+	//	if(v < 0.0 || u + v > 1.0)
+	//		return false;
+
+	//	// At this stage we can compute t to find out where the intersection point is on the line.
+	//	float t = f * edge2.dot(q);
+
+	//	if(t > EPSILON) // ray intersection
+	//	{
+	//		return t;
+	//	}
+	//	else // This means that there is a line intersection but not a ray intersection.
+	//		return 0.0;
+	//}
+	*/
 };
 
 class Model : public Object
@@ -176,7 +233,7 @@ public:
 
 		for(int a = 0; a < faceIndex.size(); a++)
 		{
-			triangles.push_back(std::move(Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]) ) );
+			triangles.push_back(Triangle(vertices[indices[incrementor] - 1], vertices[indices[incrementor + 1] - 1], vertices[indices[incrementor + 2] - 1]) ) ;
 			triangles.back().colour = this->colour;
 			triangles.back().emission = this->emission;
 			triangles.back().material = this->material;
@@ -190,7 +247,7 @@ public:
 
 	void InitTriangles();
 	
-	std::vector<Triangle> getTriangles() { return triangles; }
+	std::vector<Triangle>& getTriangles() { return triangles; }
 
 	std::vector<int> faceIndex;
 	std::vector<Vertex3> vertices;

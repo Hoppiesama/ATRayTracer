@@ -4,6 +4,12 @@
 
 enum Refl_t { DIFF, SPEC, REFR };  // material types, used in radiance() 
 
+enum ObjType
+{
+	Sph,
+	Mod,
+};
+
 class Object
 {
 
@@ -14,6 +20,8 @@ public:
 	Vector3 position;
 
 	Material material;
+
+	ObjType type = Sph;
 
 	//TODO - replace with material
 	Vector3  emission, colour;

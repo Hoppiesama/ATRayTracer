@@ -23,14 +23,17 @@ void Model::InitTriangles()
 	for(int a = 0; a < faceIndex.size(); a++)
 	{
 		//triangles.push_back(&Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]));
-		triangles.push_back(std::move(Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]])));
+		triangles.push_back(Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]));
 		triangles.back().colour = colour;
 		triangles.back().emission = emission;
 		triangles.back().material = material;
 		triangles.back().refl = refl;
-		triangles.back().position = { 0.0,0.0,0.0 };
+		triangles.back().position = position;
+		triangles.back().offsetPositions();
+		triangles.back().type = type;
 		incrementor += faceIndex[a];
 	}
+
 }
 
 // Source: https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution

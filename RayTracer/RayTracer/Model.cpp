@@ -74,19 +74,19 @@ double Model::intersect(const Ray& r) const
 	Vector3 edge0 = v1 - v0;
 	Vector3 vp0 = hitPoint - v0;
 	insideOutCheck = edge0.cross(vp0);
-	if(triangleNormal.dot(insideOutCheck) < 0) return false; // P is on the right side 
+	if(triangleNormal.dot(insideOutCheck) < 0.0) return false; // P is on the right side 
 
 															 // edge 1
 	Vector3 edge1 = v2 - v1;
 	Vector3 vp1 = hitPoint - v1;
 	insideOutCheck = edge1.cross(vp1);
-	if(triangleNormal.dot(insideOutCheck) < 0)  return false; // P is on the right side 
+	if(triangleNormal.dot(insideOutCheck) < 0.0)  return false; // P is on the right side 
 
 															  // edge 2
 	Vector3 edge2 = v0 - v2;
 	Vector3 vp2 = hitPoint - v2;
 	insideOutCheck = edge2.cross(vp2);
-	if(triangleNormal.dot(insideOutCheck) < 0) return false; // P is on the right side; 
+	if(triangleNormal.dot(insideOutCheck) < 0.0) return false; // P is on the right side; 
 
 	return true; // this ray hits the triangle 
 }

@@ -39,22 +39,23 @@ double erand48(unsigned short xSubI[3])
 Sphere spheres[] = 
 {
 	//Scene: radius, position, emission, color, material 
-	Sphere(1e5, Vector3(1e5 + 1 - 50 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
-	Sphere(1e5, Vector3(-1e5 + 99 - 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
+	Sphere(1e5, Vector3(1e5 - 49 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
+	Sphere(1e5, Vector3(-1e5 + 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
 	//Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
-	Sphere(1e5, Vector3(50 -50,40.8,-1e5 + 170), Vector3(),Vector3(),           DIFF),//Frnt 
+	Sphere(1e5, Vector3(50 -50,40.8,-1e5 + 170), Vector3(),Vector3(.75,.75,.75), DIFF),//Frnt 
 
 	Sphere(1e5, Vector3(50 -50, 1e5, 81.6),    Vector3(),Vector3(.75,.75,.75),DIFF),//Botm 
 	Sphere(1e5, Vector3(0.0, -1e5 + 81.6,81.6),Vector3(),Vector3(.75,.75,.75),DIFF),//Top 
 	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC),//Mirr 
 	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFR),//Glas 
 
-	Sphere(16.5, Vector3(0.0, 50.0, 0.0),		Vector3(12,12,12),  Vector3(), DIFF), //Lite 
+	Sphere(16.5, Vector3(0.0, 50.0, -80),		Vector3(12,12,12),  Vector3(), DIFF), //Lite 
 
-	Sphere(16.5,Vector3(12,16.5,47),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Mirr 
-	Sphere(16.5,Vector3(24,6.5,12),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
-	Sphere(16.5,Vector3(-12,11.5,47),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Mirr 
-	Sphere(16.5,Vector3(-24 ,22,22),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
+	Sphere(14,Vector3(16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFR),//Mirr 
+	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
+	Sphere(14,Vector3(-16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFR),//Mirr 
+	Sphere(16.5,Vector3(-24 ,22,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
+
 };
 
 inline double clamp(double x) 
@@ -126,11 +127,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		Vector3 v0v1 = panim->vertB.pos - panim->vertA.pos;
 		Vector3 v0v2 = panim->vertC.pos - panim->vertA.pos;
-
-		v0v1 = v0v1.normalize();
-		v0v2 = v0v2.normalize();
-		// no need to normalize
-		normal = v0v1.cross(v0v2); // N 
+		normal = v0v1.cross(v0v2).normalize(); // N 
 	}
 
 	//Vector3 normal = (hitPoint - hitObj->position).normalize();
@@ -172,7 +169,8 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	}
 
 	if(hitObj->refl == DIFF)
-	{                  // Ideal DIFFUSE reflection 
+	{                  
+		// Ideal DIFFUSE reflection 
 		double r1 = 2 * M_PI*erand48(xSubi);
 		double r2 = erand48(xSubi);
 		double r2s = sqrt(r2);
@@ -181,7 +179,6 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		Vector3 u;
 
 		//I THINK this is for determining whether a surface deflects light or not
-
 		if(fabs(w.x) > 0.1)
 		{
 			u = Vector3(0, 1, 0).cross(w);
@@ -409,11 +406,12 @@ int main(int argc, char *argv[])
 		objectsVector.push_back(&spheres[i]);
 	}
 
-	Model testObj({ 26.0, 52.0, -50.0 });
+	Model testObj({ 0.0, 0.0, -50.0 });
 	testObj.colour = Vector3(.25,.75,.75) ;
-	testObj.refl = DIFF;
+	testObj.refl = Refl_t::SPEC;
 	testObj.type = Mod;
-	importer.Import("cube.obj", &testObj);
+	fprintf(stderr, "\rImporting Models...\n");
+	importer.Import("Samoyed.obj", &testObj);
 	testObj.InitTriangles();
 
 
@@ -422,15 +420,16 @@ int main(int argc, char *argv[])
 		objectsVector.push_back(&testObj.getTriangles().at(i) );
 	}
 
-
+	fprintf(stderr, "\rBuilding BVH...\n");
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
+	fprintf(stderr, "\BVH Complete...\n");
 
-	samps = 16; //override sample!
+	samps = 64; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
-	Camera cam(Vector3(0, 52, -124), Vector3(0, 10, -1), width, height, fov); // cam pos, position to look at
+	Camera cam(Vector3(0, 52, -1), Vector3(0, 10, -124), width, height, fov); // cam pos, position to look at
 	
 	bool threaded = true;
 	bool useBVH = true;
@@ -554,10 +553,10 @@ int main(int argc, char *argv[])
 
 								Ray ray(cam.position, direction.normalize() );
 
-								bvh.intersectTree(ray, bvh.thisNode.get(), objectsHit);
+								//bvh.intersectTree(ray, bvh.thisNode.get(), objectsHit);
 
 								//push the offsets on the camera's "forward"
-								totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi, objectsHit, &bvh)*(1. / samps);
+								totalRadiance = totalRadiance + radiance(Ray(cam.position, direction.normalize()), 0, Xi, objectsVector, &bvh)*(1. / samps);
 							}
 							pixelColour[i] = pixelColour[i] + Vector3(clamp(totalRadiance.x), clamp(totalRadiance.y), clamp(totalRadiance.z))*.25;
 						}

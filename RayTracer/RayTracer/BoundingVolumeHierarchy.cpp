@@ -129,31 +129,60 @@ void BoundingVolumeHierarchy::sortObjectsAlongAxis(std::vector<Object*>& objects
 }
 
 //TODO - find the bounding box combinations with the lowest surface area
+//std::pair<std::vector<Object*>, std::vector<Object*>> BoundingVolumeHierarchy::splitObjects(std::vector<Object*> objects, double& bestCost)
+//{
+//	int permutationsLeft = 0;
+//	int permutationsRight = (int)objects.size();
+//
+//	for (int indexAtEndOfFirstSet = 0; indexAtEndOfFirstSet < (int)objects.size(); indexAtEndOfFirstSet++)
+//	{
+//
+//		std::vector<Object*> leftOfSplit = GetObjectsUpToIndex(objects, indexAtEndOfFirstSet);
+//		std::vector<Object*> rightOfSplit = GetObjectsFromIndexToEnd(objects, indexAtEndOfFirstSet);
+//
+//		BoundingBox boxLeft;
+//		boxLeft.SetBounds(calculateMinimumBox(leftOfSplit));
+//
+//		BoundingBox boxRight;
+//		boxRight.SetBounds(calculateMinimumBox(rightOfSplit));
+//
+//
+//		double thisCost = calculateCombinedSurfaceAreas(boxLeft, boxRight);
+//
+//		if (thisCost < bestCost)
+//		{
+//			bestCost = thisCost;
+//			permutationsLeft = indexAtEndOfFirstSet;
+//		}
+//	}
+//
+//	return std::make_pair(GetObjectsUpToIndex(objects, permutationsLeft), GetObjectsFromIndexToEnd(objects, permutationsLeft));
+//}
+
 std::pair<std::vector<Object*>, std::vector<Object*>> BoundingVolumeHierarchy::splitObjects(std::vector<Object*> objects, double& bestCost)
 {
-	int permutationsLeft = 0;
-	int permutationsRight = (int)objects.size();
+	int permutationsLeft = (int)((double)objects.size() * 0.5);
 
-	for (int indexAtEndOfFirstSet = 0; indexAtEndOfFirstSet < (int)objects.size(); indexAtEndOfFirstSet++)
+	if(permutationsLeft == 1 && objects.size() == 2)
 	{
+		permutationsLeft = 0;
+	}
 
-		std::vector<Object*> leftOfSplit = GetObjectsUpToIndex(objects, indexAtEndOfFirstSet);
-		std::vector<Object*> rightOfSplit = GetObjectsFromIndexToEnd(objects, indexAtEndOfFirstSet);
+	std::vector<Object*> leftOfSplit = GetObjectsUpToIndex(objects, permutationsLeft);
+	std::vector<Object*> rightOfSplit = GetObjectsFromIndexToEnd(objects, permutationsLeft);
 
-		BoundingBox boxLeft;
-		boxLeft.SetBounds(calculateMinimumBox(leftOfSplit));
+	BoundingBox boxLeft;
+	boxLeft.SetBounds(calculateMinimumBox(leftOfSplit));
 
-		BoundingBox boxRight;
-		boxRight.SetBounds(calculateMinimumBox(rightOfSplit));
+	BoundingBox boxRight;
+	boxRight.SetBounds(calculateMinimumBox(rightOfSplit));
 
 
-		double thisCost = calculateCombinedSurfaceAreas(boxLeft, boxRight);
+	double thisCost = calculateCombinedSurfaceAreas(boxLeft, boxRight);
 
-		if (thisCost < bestCost)
-		{
-			bestCost = thisCost;
-			permutationsLeft = indexAtEndOfFirstSet;
-		}
+	if(thisCost < bestCost)
+	{
+		bestCost = thisCost;
 	}
 
 	return std::make_pair(GetObjectsUpToIndex(objects, permutationsLeft), GetObjectsFromIndexToEnd(objects, permutationsLeft));

@@ -17,55 +17,6 @@ bool ObjectImporter::Import(std::string _fileName, Model* _object )
 {
 	std::string fileName = _fileName;
 
-	/*switch(_shapeToLoad)
-	{
-	case GeomShapes::DOOR_WALL:
-	{
-		fileName = "Geometry/doorWall.obj";
-		break;
-	}
-	case GeomShapes::ROOF_PYRAMIDHIP:
-	{
-		fileName = "Geometry/pyramidHip.obj";
-		break;
-	}
-	case GeomShapes::ROOF_HIP:
-	{
-		fileName = "Geometry/hip.obj";
-		break;
-	}
-	case GeomShapes::ROOF_CONE:
-	{
-		fileName = "Geometry/cone.obj";
-		break;
-	}
-	case GeomShapes::WINDOW:
-	{
-		fileName = "Geometry/Window.obj";
-		break;
-	}
-	case GeomShapes::FLAT:
-	{
-		fileName = "Geometry/Flat.obj";
-		break;
-	}
-	case GeomShapes::DOOR:
-	{
-		fileName = "Geometry/Door.obj";
-		break;
-	}
-	case GeomShapes::STAIRS:
-	{
-		fileName = "Geometry/stairs.obj";
-		break;
-	}
-	case GeomShapes::ROOF_OPENGABLE:
-	{
-		fileName = "Geometry/openGable.obj";
-		break;
-	}
-	}*/
-
 	std::ifstream inFile(fileName);
 
 	std::string line;
@@ -85,6 +36,9 @@ bool ObjectImporter::Import(std::string _fileName, Model* _object )
 
 			Vector3 temp;
 			lineStream >> temp.x >> temp.y >> temp.z;
+
+			//TODO - remove this, or have a scaler passed in with other arguments for modifying the scale of the object.
+			//temp = temp * 10.0;
 			//temp.z *= -1.0f;
 			vertexPositions.push_back(temp);
 		}
@@ -142,61 +96,6 @@ bool ObjectImporter::Import(std::string _fileName, Model* _object )
 
 	ConvertToVertexStructs(_object->vertices, _object->indices);
 
-	/*switch(_shapeToLoad)
-	{
-	case GeomShapes::DOOR_WALL:
-	{
-		ConvertToVertexStructs(dataHolder.cubeVertices, dataHolder.cubeIndices);
-		break;
-	}
-
-	case GeomShapes::DOOR:
-	{
-		ConvertToVertexStructs(dataHolder.doorVertices, dataHolder.doorIndices);
-		break;
-	}
-
-	case GeomShapes::ROOF_PYRAMIDHIP:
-	{
-		ConvertToVertexStructs(dataHolder.pyramidHipVertices, dataHolder.pyramidHipIndices);
-		break;
-	}
-	case GeomShapes::FLAT:
-	{
-		ConvertToVertexStructs(dataHolder.flatVertices, dataHolder.flatIndices);
-		break;
-	}
-	case GeomShapes::WINDOW:
-	{
-		ConvertToVertexStructs(dataHolder.windowVertices, dataHolder.windowIndices);
-		break;
-	}
-	case GeomShapes::ROOF_HIP:
-	{
-		ConvertToVertexStructs(dataHolder.hipVertices, dataHolder.hipIndices);
-		break;
-	}
-	case GeomShapes::BB_CYLINDER:
-	{
-		ConvertToVertexStructs(dataHolder.cylinderVertices, dataHolder.cylinderIndices);
-		break;
-	}
-	case GeomShapes::ROOF_CONE:
-	{
-		ConvertToVertexStructs(dataHolder.coneVertices, dataHolder.coneIndices);
-		break;
-	}
-	case GeomShapes::STAIRS:
-	{
-		ConvertToVertexStructs(dataHolder.stairsVertices, dataHolder.stairsIndices);
-		break;
-	}
-	case GeomShapes::ROOF_OPENGABLE:
-	{
-		ConvertToVertexStructs(dataHolder.openGableVertices, dataHolder.openGableIndices);
-		break;
-	}
-	}*/
 	indices.clear();
 	vertexTextureIndices.clear();
 	vertexNormalIndices.clear();

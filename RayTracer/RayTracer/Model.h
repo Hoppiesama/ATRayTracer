@@ -232,10 +232,10 @@ public:
 		for(int a = 0; a < faceIndex.size(); a++)
 		{
 			triangles.push_back(Triangle(vertices[indices[incrementor] - 1], vertices[indices[incrementor + 1] - 1], vertices[indices[incrementor + 2] - 1]) ) ;
-			triangles.back().colour = this->colour;
-			triangles.back().emission = this->emission;
-			triangles.back().material = this->material;
-			triangles.back().refl = this->refl;
+			triangles.back().material.SetDiffuseColour(this->material.GetDiffuseColour());
+			triangles.back().material.SetEmission(this->material.GetEmission());
+			//triangles.back().material = this->material;
+			triangles.back().material.SetSurface(this->material.GetSurface());
 			triangles.back().position = { 0.0,0.0,0.0 };
 			incrementor += faceIndex[a];
 		}

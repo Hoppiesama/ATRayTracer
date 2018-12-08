@@ -1,18 +1,42 @@
 #pragma once
 #include "Vector3.h"
 
+//enum SurfaceType { DIFFUSE, SPEC_REFLECTION, REFRACTION };  // material types, used in radiance() 
+
+enum SurfaceType { DIFFUSE, SPECULAR, REFRACTION };  // material types, used in radiance() 
+
 class Material
 {
 public:
-	Material();
-	~Material();
+	Material(Vector3 _diffColour, Vector3 _emission, SurfaceType _type)
+		: diffuseColour(_diffColour), emission(_emission), surface(_type)
+	{
+	};
+	Material() = default;
+	~Material() = default;
 
-	Vector3 diffuseColour;
+
+	// Default is 1 for no refraction
+	double indexOfRefraction = 1;
+
 
 	void SetDiffuseColour(Vector3 _colour) { diffuseColour = _colour; }
-	Vector3 GetDiffuseColour() { return diffuseColour; }
+	Vector3 GetDiffuseColour() const { return diffuseColour; }
 
-	//TODO - needs an index of refraction (IoR)
-	double indexOfRefraction = 1; // Default is 1 for no refraction
+	void SetEmission(Vector3 _emission) { emission = _emission; }
+	Vector3 GetEmission() const { return emission; }
+
+	void SetSurface(SurfaceType _type) { surface = _type; }
+	SurfaceType GetSurface() { return surface; }
+
+	double GetIndexOfRefraction() const { return indexOfRefraction; }
+	void SetIndexOfRefraction(double _val) { indexOfRefraction = _val; }
+
+private:
+	Vector3 diffuseColour;
+	Vector3 emission;
+
+	SurfaceType surface;
+
 };
 

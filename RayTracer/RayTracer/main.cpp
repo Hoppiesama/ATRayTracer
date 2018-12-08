@@ -39,22 +39,22 @@ double erand48(unsigned short xSubI[3])
 Sphere spheres[] = 
 {
 	//Scene: radius, position, emission, color, material 
-	Sphere(1e5, Vector3(1e5 - 49 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFF),//Left 
-	Sphere(1e5, Vector3(-1e5 + 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFF),//Rght 
+	Sphere(1e5, Vector3(1e5 - 49 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFFUSE),//Left 
+	Sphere(1e5, Vector3(-1e5 + 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFFUSE),//Rght 
 	//Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
-	Sphere(1e5, Vector3(50 -50,40.8,-1e5 + 170), Vector3(),Vector3(.75,.75,.75), DIFF),//Frnt 
+	Sphere(1e5, Vector3(50 -50,40.8,-1e5 + 170), Vector3(),Vector3(.75,.75,.75), DIFFUSE),//Frnt 
 
-	Sphere(1e5, Vector3(50 -50, 1e5, 81.6),    Vector3(),Vector3(.75,.75,.75),DIFF),//Botm 
-	Sphere(1e5, Vector3(0.0, -1e5 + 81.6,81.6),Vector3(),Vector3(.75,.75,.75),DIFF),//Top 
-	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC),//Mirr 
-	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFR),//Glas 
+	Sphere(1e5, Vector3(50 -50, 1e5, 81.6),    Vector3(),Vector3(.75,.75,.75),DIFFUSE),//Botm 
+	Sphere(1e5, Vector3(0.0, -1e5 + 81.6,81.6),Vector3(),Vector3(.75,.75,.75),DIFFUSE),//Top 
+	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPECULAR),//Mirr 
+	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFRACTION),//Glas 
 
-	Sphere(16.5, Vector3(0.0, 50.0, -80),		Vector3(12,12,12),  Vector3(), DIFF), //Lite 
+	Sphere(16.5, Vector3(0.0, 50.0, -80),		Vector3(12,12,12),  Vector3(), DIFFUSE), //Lite 
 
-	Sphere(14,Vector3(16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFR),//Mirr 
-	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
-	Sphere(14,Vector3(-16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFR),//Mirr 
-	Sphere(16.5,Vector3(-24 ,22,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFF),//Glas 
+	Sphere(14,Vector3(16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFRACTION),//Mirr 
+	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE),//Glas 
+	Sphere(14,Vector3(-16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFRACTION),//Mirr 
+	Sphere(16.5,Vector3(-24 ,22,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE),//Glas 
 
 };
 
@@ -132,7 +132,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 	//Vector3 normal = (hitPoint - hitObj->position).normalize();
 	Vector3 nl = normal.dot(r.GetDirection()) < 0 ? normal : normal * -1;
-	Vector3 objectColour = hitObj->colour;
+	Vector3 objectColour = hitObj->material.GetDiffuseColour();
 
 	//TODO - remove this, it's super simple to test BVH
 	//return hitObj->colour;
@@ -164,11 +164,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		}
 		else
 		{
-			return hitObj->emission; //R.R. 
+			return hitObj->material.GetEmission(); //R.R. 
 		}
 	}
 
-	if(hitObj->refl == DIFF)
+	if(hitObj->material.GetSurface() == DIFFUSE)
 	{                  
 		// Ideal DIFFUSE reflection 
 		double r1 = 2 * M_PI*erand48(xSubi);
@@ -202,9 +202,9 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		bvh->intersectTree(ray, bvh->thisNode.get(), objects);
 
-		return hitObj->emission + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
+		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
-	else if(hitObj->refl == SPEC)            // Ideal SPECULAR reflection 
+	else if(hitObj->material.GetSurface() == SPECULAR)            // Ideal SPECULAR reflection 
 	{
 
 		Vector3 newDirection = r.GetDirection() - normal * 2 * normal.dot(r.GetDirection());
@@ -217,7 +217,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		//r.GetDirection() - normal * 2 * normal.dot(r.GetDirection()) is a mirrored angle from the normal, e.g. angle of incidence and angle of reflection from the normal are the same.
 		//based on the idea shown here https://youtu.be/ytRrjf9OPHg?t=1031 ...
-		return hitObj->emission + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
+		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
 
 	//dielectric REFRACTION 
@@ -263,7 +263,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	{
 		objects.clear();
 		bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
-		return hitObj->emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh));
+		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh));
 	}
 		
 	Vector3 tdir;
@@ -308,7 +308,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 			objects.clear();
 			bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
 
-			return hitObj->emission + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh)*probabilityOfRefracting);
+			return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh)*probabilityOfRefracting);
 		}
 		else
 		{
@@ -316,7 +316,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 			objects.clear();
 			bvh->intersectTree(ray, bvh->thisNode.get(), objects);
 
-			return hitObj->emission + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh)*TP);
+			return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh)*TP);
 		}
 	}
 	else
@@ -326,7 +326,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		objects.clear();
 		bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
 		bvh->intersectTree(ray2, bvh->thisNode.get(), objects);
-		return hitObj->emission + objectColour.multiplyBy((radiance(reflRay, depth, xSubi, objects, bvh) * fresnelReflectance + radiance(ray2, depth, xSubi, objects, bvh)*Tr) );
+		return hitObj->material.GetEmission() + objectColour.multiplyBy((radiance(reflRay, depth, xSubi, objects, bvh) * fresnelReflectance + radiance(ray2, depth, xSubi, objects, bvh)*Tr) );
 	}
 }
 
@@ -406,9 +406,9 @@ int main(int argc, char *argv[])
 		objectsVector.push_back(&spheres[i]);
 	}
 
-	Model testObj({ 0.0, 0.0, -50.0 });
+	/*Model testObj({ 0.0, 0.0, -50.0 });
 	testObj.colour = Vector3(.25,.75,.75) ;
-	testObj.refl = Refl_t::SPEC;
+	testObj.refl = SurfaceType::SPECULAR;
 	testObj.type = Mod;
 	fprintf(stderr, "\rImporting Models...\n");
 	importer.Import("Samoyed.obj", &testObj);
@@ -418,7 +418,7 @@ int main(int argc, char *argv[])
 	for(int i = 0; i < testObj.getTriangles().size(); i++)
 	{
 		objectsVector.push_back(&testObj.getTriangles().at(i) );
-	}
+	}*/
 
 	fprintf(stderr, "\rBuilding BVH...\n");
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);

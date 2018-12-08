@@ -49,7 +49,7 @@ Sphere spheres[] =
 	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC_REFLECTION),//Mirr 
 	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFRACTION),//Glas 
 
-	Sphere(16.5, Vector3(0.0, 50.0, -80),		Vector3(12,12,12),  Vector3(), DIFFUSE), //Lite 
+	Sphere(16.5, Vector3(0.0, 50.0, -80),		Vector3(12,12,12),  Vector3(0,0,0), DIFFUSE), //Lite 
 
 	Sphere(14,Vector3(16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFRACTION),//Mirr 
 	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE),//Glas 
@@ -202,6 +202,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		bvh->intersectTree(ray, bvh->thisNode.get(), objects);
 
+		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
 	else if(hitObj->material.surface == SPEC_REFLECTION)            // Ideal SPECULAR reflection 
 	{

@@ -14,7 +14,7 @@ public:
 	void SetDiffuseColour(Vector3 _colour) { diffuseColour = _colour; }
 	Vector3 GetDiffuseColour() const { return diffuseColour; }
 
-	void SetEmission(Vector3 _colour) { diffuseColour = _colour; }
+	void SetEmission(Vector3 _emission) { emission = _emission; }
 	Vector3 GetEmission() const { return diffuseColour; }
 
 	SurfaceType surface;

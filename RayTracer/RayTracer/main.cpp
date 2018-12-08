@@ -39,26 +39,24 @@ double erand48(unsigned short xSubI[3])
 Sphere spheres[] = 
 {
 	//Scene: radius, position, emission, color, material 
-	Sphere(1e5, Vector3(1e5 - 220 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFFUSE, 1.0),//Left 
-	Sphere(1e5, Vector3(-1e5 + 220,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFFUSE, 1.0),//Rght 
+	Sphere(1e5, Vector3(1e5 - 60 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFFUSE, 1.0),//Left 
+	Sphere(1e5, Vector3(-1e5 + 60,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFFUSE, 1.0),//Rght 
 	//Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
-	Sphere(1e5, Vector3(0,40.8,-1e5 + 220), Vector3(),Vector3(.75,.75,.75), DIFFUSE, 1.0),//Frnt 
+	Sphere(1e5, Vector3(0,40.8,-1e5 + 60), Vector3(),Vector3(.75,.75,.75), DIFFUSE, 1.0),//Frnt 
 
 
 
-	Sphere(1e5, Vector3(0, -1e5 - 220, 0),    Vector3(),Vector3(.75,.75,.75),DIFFUSE,1.0),//Botm 
-	Sphere(1e5, Vector3(0.0, 1e5 + 220,0),	Vector3(),Vector3(.75,.75,.75),DIFFUSE, 1.0),//Top 
-
+	Sphere(1e5, Vector3(0, -1e5 - 60, 0),    Vector3(),Vector3(.75,.75,.75),DIFFUSE,1.0),//Botm 
+	Sphere(1e5, Vector3(0.0, 1e5 + 60,0),	Vector3(),Vector3(.75,.75,.75),DIFFUSE, 1.0),//Top 
 	Sphere(16.5,Vector3(-23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, SPEC_REFLECTION, 1.0),//Mirr 
 	Sphere(16.5,Vector3(23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, REFRACTION, 1.5),//Glas 
 
-	Sphere(16.5, Vector3(0.0, 50.0, -130),		Vector3(12,12,12),  Vector3(0,0,0), DIFFUSE, 1.0), //Lite 
+	Sphere(16.5, Vector3(0.0, 12.0, -50),		Vector3(12.0,12.0,12.0),  Vector3(), DIFFUSE, 1.0), //Lite 
 
 	Sphere(14,Vector3(16,11.5,-57),       Vector3(),Vector3(.75,.5,.25)*.999, REFRACTION, 1.5),//glass 
 	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.66,.66)*.999, DIFFUSE, 1.0),//matte 
 	Sphere(14,Vector3(-16,11.5,-57),       Vector3(),Vector3(.5,.25,.25)*.999, REFRACTION, 1.5),//glass 
 	Sphere(16.5,Vector3(-24 ,22,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE, 1.0),//matte 
-
 };
 
 inline double clamp(double x) 
@@ -430,7 +428,7 @@ int main(int argc, char *argv[])
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
-	Camera cam(Vector3(0, 52, 180), Vector3(0, 22, 0), width, height, fov); // cam pos, position to look at
+	Camera cam(Vector3(0, 52, 50), Vector3(0, 35, 0), width, height, fov); // cam pos, position to look at
 	
 	bool threaded = true;
 	bool useBVH = true;

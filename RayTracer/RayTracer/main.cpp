@@ -39,22 +39,25 @@ double erand48(unsigned short xSubI[3])
 Sphere spheres[] = 
 {
 	//Scene: radius, position, emission, color, material 
-	Sphere(1e5, Vector3(1e5 - 49 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFFUSE),//Left 
-	Sphere(1e5, Vector3(-1e5 + 50,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFFUSE),//Rght 
+	Sphere(1e5, Vector3(1e5 - 220 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFFUSE, 1.0),//Left 
+	Sphere(1e5, Vector3(-1e5 + 220,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFFUSE, 1.0),//Rght 
 	//Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
-	Sphere(1e5, Vector3(50 -50,40.8,-1e5 + 170), Vector3(),Vector3(.75,.75,.75), DIFFUSE),//Frnt 
+	Sphere(1e5, Vector3(0,40.8,-1e5 + 220), Vector3(),Vector3(.75,.75,.75), DIFFUSE, 1.0),//Frnt 
 
-	Sphere(1e5, Vector3(50 -50, 1e5, 81.6),    Vector3(),Vector3(.75,.75,.75),DIFFUSE),//Botm 
-	Sphere(1e5, Vector3(0.0, -1e5 + 81.6,81.6),Vector3(),Vector3(.75,.75,.75),DIFFUSE),//Top 
-	Sphere(16.5,Vector3(27 - 50,16.5,47),       Vector3(),Vector3(1,1,1)*.999, SPEC_REFLECTION),//Mirr 
-	Sphere(16.5,Vector3(73 - 50,16.5,78),       Vector3(),Vector3(1,1,1)*.999, REFRACTION),//Glas 
 
-	Sphere(16.5, Vector3(0.0, 50.0, -80),		Vector3(12,12,12),  Vector3(0,0,0), DIFFUSE), //Lite 
 
-	Sphere(14,Vector3(16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFRACTION),//Mirr 
-	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE),//Glas 
-	Sphere(14,Vector3(-16,11.5,-87),       Vector3(),Vector3(.75,.25,.25)*.999, REFRACTION),//Mirr 
-	Sphere(16.5,Vector3(-24 ,22,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE),//Glas 
+	Sphere(1e5, Vector3(0, -1e5 - 220, 0),    Vector3(),Vector3(.75,.75,.75),DIFFUSE,1.0),//Botm 
+	Sphere(1e5, Vector3(0.0, 1e5 + 220,0),	Vector3(),Vector3(.75,.75,.75),DIFFUSE, 1.0),//Top 
+
+	Sphere(16.5,Vector3(-23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, SPEC_REFLECTION, 1.0),//Mirr 
+	Sphere(16.5,Vector3(23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, REFRACTION, 1.5),//Glas 
+
+	Sphere(16.5, Vector3(0.0, 50.0, -130),		Vector3(12,12,12),  Vector3(0,0,0), DIFFUSE, 1.0), //Lite 
+
+	Sphere(14,Vector3(16,11.5,-57),       Vector3(),Vector3(.75,.5,.25)*.999, REFRACTION, 1.5),//glass 
+	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.66,.66)*.999, DIFFUSE, 1.0),//matte 
+	Sphere(14,Vector3(-16,11.5,-57),       Vector3(),Vector3(.5,.25,.25)*.999, REFRACTION, 1.5),//glass 
+	Sphere(16.5,Vector3(-24 ,22,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE, 1.0),//matte 
 
 };
 
@@ -228,20 +231,16 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 	double airRefractionIndex = 1;
 
-	//TODO - replace this with access to hit object's material "Index of Refraction"
-	double glassRefractionIndex = 1.5;
-
-
 	double nnt;
 
 	//If going in, we calculate the change in angle due to the refraction. If coming out, it's inverted back.
 	if(into)
 	{
-		nnt = airRefractionIndex / glassRefractionIndex; // == 1/1.5 == 0.666666
+		nnt = airRefractionIndex / hitObj->material.GetIndexOfRefraction(); // == 1/1.5 == 0.666666
 	}
 	else
 	{
-		nnt = glassRefractionIndex / airRefractionIndex;  // == 1.5/1 == 1.5
+		nnt = hitObj->material.GetIndexOfRefraction() / airRefractionIndex;  // == 1.5/1 == 1.5
 	}
 
 
@@ -252,13 +251,15 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	//Calculate angle of ray relative to surface.
 	double cosine2Theta = 1 - nnt * nnt * (1 - rayDirectionDotNormal * rayDirectionDotNormal);
 
-	/*When the angle of incident is greater than some value called the critical angle, 
+	/*
+	When the angle of incident is greater than some value called the critical angle, 
 	then 100 % of the light incident on the surface is reflected.In another words, 
 	when the angle of incident is greater than the critical angle, there isn't any refraction at all.
 	This only happens though when the light ray passes from one medium to another medium with a lower index of refraction, 
 	such as in the case of a water-air, diamond-water or glass-water interaction. This phenomenon is called ...
 
-	"total internal reflection."	*/
+	"total internal reflection."	
+	*/
 	if(cosine2Theta < 0)
 	{
 		objects.clear();
@@ -279,8 +280,8 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	}
 	tdir.normalize();
 
-	double a = glassRefractionIndex - airRefractionIndex; // == 1.5 - 1 == 0.5
-	double b = glassRefractionIndex + airRefractionIndex; // == 1.5 + 1 = 2.5
+	double a = hitObj->material.GetIndexOfRefraction() - airRefractionIndex; // == 1.5 - 1 == 0.5
+	double b = hitObj->material.GetIndexOfRefraction() + airRefractionIndex; // == 1.5 + 1 = 2.5
 	double reflectanceAtNormalIncidence = (a * a) / (b*b); // == 0.5^2 / (b^2)
 
 	double c;	// c = 1 - cos(theta)
@@ -424,12 +425,12 @@ int main(int argc, char *argv[])
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
 	fprintf(stderr, "\BVH Complete...\n");
 
-	samps = 16; //override sample!
+	samps = 64; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
-	Camera cam(Vector3(0, 52, -1), Vector3(0, 10, -124), width, height, fov); // cam pos, position to look at
+	Camera cam(Vector3(0, 52, 180), Vector3(0, 22, 0), width, height, fov); // cam pos, position to look at
 	
 	bool threaded = true;
 	bool useBVH = true;

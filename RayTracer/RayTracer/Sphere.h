@@ -14,13 +14,14 @@ public:
 
 	double radius;       // radius 
 
-	Sphere(double rad_, Vector3 p_, Vector3 e_, Vector3 c_, SurfaceType refl_) 
+	Sphere(double rad_, Vector3 p_, Vector3 e_, Vector3 c_, SurfaceType refl_, double _indexOfRefraction) 
 	{
 		radius = rad_;
 		material.surface = refl_;
 		material.SetEmission(e_);
 		material.SetDiffuseColour(c_);
 		position = p_;
+		material.SetIndexOfRefraction(_indexOfRefraction);
 	}
 
 	double intersect(const Ray &r) const override;

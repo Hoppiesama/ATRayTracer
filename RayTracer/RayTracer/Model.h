@@ -224,17 +224,17 @@ class Model : public Object
 public:
 	Model(Vector3 _position);
 
-	Model(std::vector<Vertex3> _verts, std::vector<int> _indices, std::vector<int> _faceIndices)
+	Model(std::vector<Vertex3> _verts, std::vector<int> _indices, std::vector<int> _faceIndices, Material _mat)
 		: indices(_indices), vertices(_verts), faceIndex(_faceIndices)
 	{
 		int incrementor = 0;
 
+		material = _mat;
+
 		for(int a = 0; a < faceIndex.size(); a++)
 		{
 			triangles.push_back(Triangle(vertices[indices[incrementor] - 1], vertices[indices[incrementor + 1] - 1], vertices[indices[incrementor + 2] - 1]) ) ;
-			triangles.back().material.SetDiffuseColour(this->material.GetDiffuseColour());
-			triangles.back().material.SetEmission(this->material.GetEmission());
-			triangles.back().material.surface = this->material.surface;
+			triangles.back().material = material;
 			triangles.back().position = { 0.0,0.0,0.0 };
 			incrementor += faceIndex[a];
 		}

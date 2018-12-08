@@ -15,15 +15,18 @@ public:
 	Vector3 GetDiffuseColour() const { return diffuseColour; }
 
 	void SetEmission(Vector3 _colour) { diffuseColour = _colour; }
-	Vector3 GetEmission()  const { return diffuseColour; }
+	Vector3 GetEmission() const { return diffuseColour; }
 
 	SurfaceType surface;
 
-	//TODO - needs an index of refraction (IoR)
-	double indexOfRefraction = 1; // Default is 1 for no refraction
+	double GetIndexOfRefraction() const { return indexOfRefraction; }
+	void SetIndexOfRefraction(double _val) { indexOfRefraction = _val; }
 
 private:
 	Vector3 diffuseColour;
 	Vector3 emission;
+
+	// Default is 1 for no refraction
+	double indexOfRefraction = 1;
 };
 

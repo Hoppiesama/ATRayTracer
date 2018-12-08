@@ -2,8 +2,6 @@
 #include "Material.h"
 #include "Ray.h"
 
-enum Refl_t { DIFF, SPEC, REFR };  // material types, used in radiance() 
-
 enum ObjType
 {
 	Sph,
@@ -22,10 +20,6 @@ public:
 	Material material;
 
 	ObjType type = Sph;
-
-	//TODO - replace with material
-	Vector3  emission, colour;
-	Refl_t refl;      // reflection type (DIFFuse, SPECular, REFRactive) 
 
 	virtual double intersect(const Ray &r) const = 0;
 

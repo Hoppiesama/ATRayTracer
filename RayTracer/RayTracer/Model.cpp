@@ -24,10 +24,9 @@ void Model::InitTriangles()
 	{
 		//triangles.push_back(&Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]));
 		triangles.push_back(Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]));
-		triangles.back().colour = colour;
-		triangles.back().emission = emission;
-		triangles.back().material = material;
-		triangles.back().refl = refl;
+		triangles.back().material.SetDiffuseColour(this->material.GetDiffuseColour());
+		triangles.back().material.SetEmission(this->material.GetEmission());
+		triangles.back().material.surface = this->material.surface;
 		triangles.back().position = position;
 		triangles.back().offsetPositions();
 		triangles.back().type = type;

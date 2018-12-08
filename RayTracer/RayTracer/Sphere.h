@@ -14,12 +14,12 @@ public:
 
 	double radius;       // radius 
 
-	Sphere(double rad_, Vector3 p_, Vector3 e_, Vector3 c_, Refl_t refl_) :
-		radius(rad_)
+	Sphere(double rad_, Vector3 p_, Vector3 e_, Vector3 c_, SurfaceType refl_) 
 	{
-		refl = refl_;
-		emission = e_;
-		colour = c_;
+		radius = rad_;
+		material.surface = refl_;
+		material.SetEmission(e_);
+		material.SetDiffuseColour(c_);
 		position = p_;
 	}
 

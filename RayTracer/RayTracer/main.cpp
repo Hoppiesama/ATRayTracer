@@ -169,7 +169,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		}
 	}
 
-	if(hitObj->material.surface == DIFFUSE)
+	if(hitObj->material.GetSurface() == DIFFUSE)
 	{                  
 		// Ideal DIFFUSE reflection 
 		double r1 = 2 * M_PI*erand48(xSubi);
@@ -205,7 +205,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
-	else if(hitObj->material.surface == SPEC_REFLECTION)            // Ideal SPECULAR reflection 
+	else if(hitObj->material.GetSurface() == SPEC_REFLECTION)            // Ideal SPECULAR reflection 
 	{
 
 		Vector3 newDirection = r.GetDirection() - normal * 2 * normal.dot(r.GetDirection());
@@ -405,19 +405,20 @@ int main(int argc, char *argv[])
 		objectsVector.push_back(&spheres[i]);
 	}
 
-	//Model testObj({ 0.0, 0.0, -50.0 });
-	//testObj.colour = Vector3(.25,.75,.75) ;
-	//testObj.refl = SurfaceType::SPEC_REFLECTION;
-	//testObj.type = Mod;
-	//fprintf(stderr, "\rImporting Models...\n");
-	//importer.Import("Samoyed.obj", &testObj);
-	//testObj.InitTriangles();
+	Model testObj({ 0.0, 0.0, -20.0 });
+	testObj.material.SetDiffuseColour(Vector3(.25,.75,.75)) ;
+	testObj.material.SetSurface(SurfaceType::SPEC_REFLECTION);
+	testObj.material.SetEmission(Vector3());
+	testObj.type = Mod;
+	fprintf(stderr, "\rImporting Models...\n");
+	importer.Import("Samoyed.obj", &testObj);
+	testObj.InitTriangles();
 
 
-	//for(int i = 0; i < testObj.getTriangles().size(); i++)
-	//{
-	//	objectsVector.push_back(&testObj.getTriangles().at(i) );
-	//}
+	for(int i = 0; i < testObj.getTriangles().size(); i++)
+	{
+		objectsVector.push_back(&testObj.getTriangles().at(i) );
+	}
 
 	fprintf(stderr, "\rBuilding BVH...\n");
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
@@ -428,7 +429,7 @@ int main(int argc, char *argv[])
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
-	Camera cam(Vector3(0, 52, 50), Vector3(0, 35, 0), width, height, fov); // cam pos, position to look at
+	Camera cam(Vector3(0, 52, 50), Vector3(0, 25, 0), width, height, fov); // cam pos, position to look at
 	
 	bool threaded = true;
 	bool useBVH = true;

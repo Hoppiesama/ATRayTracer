@@ -15,9 +15,10 @@ public:
 	Vector3 GetDiffuseColour() const { return diffuseColour; }
 
 	void SetEmission(Vector3 _emission) { emission = _emission; }
-	Vector3 GetEmission() const { return diffuseColour; }
+	Vector3 GetEmission() const { return emission; }
 
-	SurfaceType surface;
+	void SetSurface(SurfaceType _type) { surface = _type; }
+	SurfaceType GetSurface() { return surface; }
 
 	double GetIndexOfRefraction() const { return indexOfRefraction; }
 	void SetIndexOfRefraction(double _val) { indexOfRefraction = _val; }
@@ -25,6 +26,8 @@ public:
 private:
 	Vector3 diffuseColour;
 	Vector3 emission;
+
+	SurfaceType surface;
 
 	// Default is 1 for no refraction
 	double indexOfRefraction = 1;

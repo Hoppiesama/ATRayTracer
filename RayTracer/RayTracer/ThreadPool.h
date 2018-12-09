@@ -30,9 +30,27 @@ struct ThreadTask
 		_bvh = bvh;
 	}
 
+	ThreadTask(int samples, int yStart, int yEnd, int xStart, int xEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera* cam, std::atomic<int>* counter, std::string* string, BoundingVolumeHierarchy* bvh)
+	{
+		_samples = samples;
+		_yStart = yStart;
+		_yEnd = yEnd;
+		_xStart = xStart;
+		_xEnd = xEnd;
+		_width = width;
+		_height = height;
+		_pixelColour = pixelColour;
+		_cam = cam;
+		_counter = counter;
+		_string = string;
+		_bvh = bvh;
+	}
+
 	int _samples;
 	int _yStart;
 	int _yEnd;
+	int _xStart;
+	int _xEnd;
 	int _width;
 	int _height;
 	std::vector<Vector3>* _pixelColour = nullptr;
@@ -41,7 +59,9 @@ struct ThreadTask
 	std::string* _string = nullptr;
 	BoundingVolumeHierarchy* _bvh;
 
-	void(*foo) (int samples, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera cam, std::atomic<int>* counter, std::string* string, BoundingVolumeHierarchy* bvh);
+	void(*taskFunction) (int samples, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera cam, std::atomic<int>* counter, std::string* string, BoundingVolumeHierarchy* bvh);
+
+	void(*taskFunction2) (int samples, int yStart, int yEnd, int xStart, int xEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera cam, std::atomic<int>* counter, std::string* string, BoundingVolumeHierarchy* bvh);
 };
 
 class ThreadPool
@@ -59,6 +79,8 @@ public:
 	void enqueue(Task _task);
 
 	bool GetCompleted() { return complete; }
+
+	bool IsQueueEmpty() { return taskQueue.empty(); }
 
 private:
 	void start(std::size_t _numberOfThreads);

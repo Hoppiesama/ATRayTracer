@@ -330,6 +330,64 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	}
 }
 
+void threadOver2(int samples, int yStart, int yEnd, int xStart, int xEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera _cam, std::atomic<int>* _counter, std::string* _string, BoundingVolumeHierarchy* _bvh)
+{
+	Vector3 cx = _cam.GetRightFOVAdjusted();
+	//preserve aspect ration based on camRight
+	Vector3 cy = _cam.GetUpFOVAdjusted();
+
+	Vector3 r;
+
+	for(int y = yStart; y<yEnd; y++)
+	{                       // Loop over image rows 
+		unsigned short Xi[3] = { 0,0, y*y*y };
+
+		for(int x = xStart; x < xEnd; x++) // Loop cols 
+		{
+			int i = (height - y - 1)* width + x;
+
+			//TODO - remove sub-pixel sampling.
+			//TODO - remove multi-sampling.
+
+			int result1 = (int)(((double)(y - yStart) / (double)(yEnd - yStart) * 100));
+			int result2 = (int)(((double)(x - xStart) / (double)(xEnd - xStart) * 100));
+
+			(*_string) = std::to_string(result1) + "." + std::to_string(result2);
+
+			for(int subPixelY = 0; subPixelY < 2; subPixelY++)     // 2x2 subpixel rows 
+			{
+				for(int subPixelX = 0; subPixelX<2; subPixelX++, r = Vector3()) // 2x2 subpixel cols 
+				{
+					for(int s = 0; s<samples; s++)
+					{
+						//Produces random number between -1 and 1. Tent filter (weights towards centre point)
+						double r1 = 2 * erand48(Xi);
+						double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+						double r2 = 2 * erand48(Xi);
+						double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+
+						//Get the ray direction based on the offsets produced beforehand
+						Vector3 direction = cx * (((subPixelX + .5 + dx) / 2 + x) / width - .5)
+							+ cy * (((subPixelY + .5 + dy) / 2 + y) / height - .5)
+							+ _cam.lookDirection;
+						//push the offsets on the camera's "forward"
+
+						std::vector<Object*> objectsHit;
+
+						Ray ray(_cam.position, direction.normalize());
+
+						_bvh->intersectTree(ray, _bvh->thisNode.get(), objectsHit);
+
+						r = r + radiance(Ray(_cam.position, direction.normalize()), 0, Xi, objectsHit, _bvh) * (1. / samples);
+					}
+					(pixelColour)->at(i) = (pixelColour)->at(i) + Vector3(clamp(r.x), clamp(r.y), clamp(r.z))*.25;
+				}
+			}
+		}
+
+	}
+	(*_counter)++;
+}
 
 void threadOver(int samples, int yStart, int yEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera _cam, std::atomic<int>* _counter, std::string* _string, BoundingVolumeHierarchy* _bvh)
 {
@@ -432,6 +490,15 @@ int main(int argc, char *argv[])
 
 	Camera cam(Vector3(0, 52, 50), Vector3(0, 25, 0), width, height, fov); // cam pos, position to look at
 	
+	while(width % 16 != 0)
+	{
+		width++;
+	}
+
+	while(height % 16 != 0)
+	{
+		height++;
+	}
 
 	//Testing threadpool.
 	ThreadPool threadPool(7);
@@ -446,41 +513,79 @@ int main(int argc, char *argv[])
 
 	if(threaded)
 	{
+		std::string t0 = "";
 		std::string t1 = "";
 		std::string t2 = "";
 		std::string t3 = "";
 		std::string t4 = "";
+		std::string t5 = "";
+		std::string t6 = "";
+
+		std::string strings[7] = { t0, t1, t2, t3, t4, t5, t6 };
 
 		std::atomic<int> finishedThreads = 0;
 
 		if(threadPooled)
 		{
-			ThreadTask task(samps, 0, height / 4, width, height, &pixelColour, &cam, &finishedThreads, &t1, &bvh);
-			task.foo = &threadOver;
+			int taskCounter = 0;
 
-			ThreadTask task2(samps, (int)(height / 4), (int)((height / 4) * 2), width, height, &pixelColour, &cam, &finishedThreads, &t2, &bvh);
-			task2.foo = &threadOver;
-
-			ThreadTask task3(samps, (int)((height / 4) * 2), (int)((height / 4) * 3), width, height, &pixelColour, &cam, &finishedThreads, &t3, &bvh);
-			task3.foo = &threadOver;
-
-			ThreadTask task4(samps, (int)((height / 4) * 3), height, width, height, &pixelColour, &cam, &finishedThreads, &t4, &bvh);
-			task4.foo = &threadOver;
-
-			threadPool.enqueue(task);
-			threadPool.enqueue(task2);
-			threadPool.enqueue(task3);
-			threadPool.enqueue(task4);
-
-			while(finishedThreads < 4)
+			for(int y = 0; y < height; y += 16)
 			{
-				std::cout << "\rComplete thr: " << finishedThreads;
-				std::cout << "\tThr 1: " + t1;
-				std::cout << "\tThr 2: " + t2;
-				std::cout << "\tThr 3: " + t3;
-				std::cout << "\tThr 4: " + t4;
+				for(int x = 0; x < width; x += 16)
+				{
+
+					ThreadTask task(samps, y, y + 16, x, x+16, width, height, &pixelColour, &cam, &finishedThreads, &t0, &bvh);
+					task.taskFunction2 = &threadOver2;
+					threadPool.enqueue(task);
+					taskCounter++;
+				}
 			}
 
+			//std::cout << "Tasks to complete: " + taskCounter << std::endl;
+
+			fprintf(stderr, "\rWidth: %d \n", width);
+			fprintf(stderr, "\rHeight: %d \n", height);
+
+			fprintf(stderr, "\rTasks to complete: %d \n\n", taskCounter);
+
+			/*
+			//ThreadTask task(samps, 0, height / 4, width, height, &pixelColour, &cam, &finishedThreads, &t1, &bvh);
+			//task.foo = &threadOver;
+
+			//ThreadTask task2(samps, (int)(height / 4), (int)((height / 4) * 2), width, height, &pixelColour, &cam, &finishedThreads, &t2, &bvh);
+			//task2.foo = &threadOver;
+
+			//ThreadTask task3(samps, (int)((height / 4) * 2), (int)((height / 4) * 3), width, height, &pixelColour, &cam, &finishedThreads, &t3, &bvh);
+			//task3.foo = &threadOver;
+
+			//ThreadTask task4(samps, (int)((height / 4) * 3), height, width, height, &pixelColour, &cam, &finishedThreads, &t4, &bvh);
+			//task4.foo = &threadOver;
+
+			//threadPool.enqueue(task);
+			//threadPool.enqueue(task2);
+			//threadPool.enqueue(task3);
+			//threadPool.enqueue(task4);
+
+			//while(finishedThreads < 4)
+			//{
+			//	std::cout << "\rComplete thr: " << finishedThreads;
+			//	std::cout << "\tThr 1: " + t1;
+			//	std::cout << "\tThr 2: " + t2;
+			//	std::cout << "\tThr 3: " + t3;
+			//	std::cout << "\tThr 4: " + t4;
+			//}
+			*/
+
+			while(!threadPool.IsQueueEmpty())
+			{
+				//std::cout << "\rComplete thr: " << finishedThreads;
+				//std::cout << " Percentage complete: " << (float)((int)finishedThreads / taskCounter);
+				int temp = (int)finishedThreads;
+
+			//	100.*y / (height - 1)
+
+				fprintf(stderr, "\rComplete thr: %d Percentage Complete: %5.2f%%", temp, (  ( (float)temp / (float)taskCounter) ) * 100.f );
+			}
 		}
 		else
 		{

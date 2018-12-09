@@ -47,8 +47,9 @@ void ThreadPool::start(std::size_t _numberOfThreads)
 					taskQueue.pop();
 				}
 
-				currentTask->foo(
+				currentTask->taskFunction2(
 					currentTask->_samples, currentTask->_yStart, currentTask->_yEnd,
+					currentTask->_xStart, currentTask->_xEnd,
 					currentTask->_width, currentTask->_height, currentTask->_pixelColour,
 					*currentTask->_cam, currentTask->_counter, currentTask->_string, currentTask->_bvh);
 			}

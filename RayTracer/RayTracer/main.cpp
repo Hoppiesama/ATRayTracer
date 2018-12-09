@@ -12,6 +12,7 @@
 #include <string>
 #include "BoundingVolumeHierarchy.h"
 #include "ObjectImporter.h"
+#include "ThreadPool.h"
 
 #include <thread>
 
@@ -424,14 +425,19 @@ int main(int argc, char *argv[])
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
 	fprintf(stderr, "\BVH Complete...\n");
 
-	samps = 64; //override sample!
+	samps = 8; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
 	Camera cam(Vector3(0, 52, 50), Vector3(0, 25, 0), width, height, fov); // cam pos, position to look at
 	
+
+	//Testing threadpool.
+	ThreadPool threadPool(7);
+
 	bool threaded = true;
+	bool threadPooled = true;
 	bool useBVH = true;
 
 	//used for output;
@@ -447,25 +453,58 @@ int main(int argc, char *argv[])
 
 		std::atomic<int> finishedThreads = 0;
 
-		std::thread thread = std::thread(threadOver, samps, 0, height / 4, width, height, &pixelColour, cam, &finishedThreads, &t1, &bvh);
-		std::thread thread2 = std::thread(threadOver, samps, height / 4, (height / 4) * 2, width, height, &pixelColour, cam, &finishedThreads, &t2, &bvh);
-		std::thread thread3 = std::thread(threadOver, samps, (height / 4) * 2, (height / 4) * 3, width, height, &pixelColour, cam, &finishedThreads, &t3, &bvh);
-		std::thread thread4 = std::thread(threadOver, samps, (height / 4) * 3, height, width, height, &pixelColour, cam, &finishedThreads, &t4, &bvh);
-
-		while(finishedThreads < 4)
+		if(threadPooled)
 		{
-			std::cout << "\rComplete thr: " << finishedThreads;
-			std::cout << "\tThr 1: " + t1;
-			std::cout << "\tThr 2: " + t2;
-			std::cout << "\tThr 3: " + t3;
-			std::cout << "\tThr 4: " + t4;
-		}
+			ThreadTask task(samps, 0, height / 4, width, height, &pixelColour, &cam, &finishedThreads, &t1, &bvh);
+			task.foo = &threadOver;
 
-		//Added as a precaution
-		thread.join();
-		thread2.join();
-		thread3.join();
-		thread4.join();
+			ThreadTask task2(samps, (int)(height / 4), (int)((height / 4) * 2), width, height, &pixelColour, &cam, &finishedThreads, &t2, &bvh);
+			task2.foo = &threadOver;
+
+			ThreadTask task3(samps, (int)((height / 4) * 2), (int)((height / 4) * 3), width, height, &pixelColour, &cam, &finishedThreads, &t3, &bvh);
+			task3.foo = &threadOver;
+
+			ThreadTask task4(samps, (int)((height / 4) * 3), height, width, height, &pixelColour, &cam, &finishedThreads, &t4, &bvh);
+			task4.foo = &threadOver;
+
+			threadPool.enqueue(task);
+			threadPool.enqueue(task2);
+			threadPool.enqueue(task3);
+			threadPool.enqueue(task4);
+
+			while(finishedThreads < 4)
+			{
+				std::cout << "\rComplete thr: " << finishedThreads;
+				std::cout << "\tThr 1: " + t1;
+				std::cout << "\tThr 2: " + t2;
+				std::cout << "\tThr 3: " + t3;
+				std::cout << "\tThr 4: " + t4;
+			}
+
+		}
+		else
+		{
+			std::thread thread = std::thread(threadOver, samps, 0, height / 4, width, height, &pixelColour, cam, &finishedThreads, &t1, &bvh);
+			std::thread thread2 = std::thread(threadOver, samps, height / 4, (height / 4) * 2, width, height, &pixelColour, cam, &finishedThreads, &t2, &bvh);
+			std::thread thread3 = std::thread(threadOver, samps, (height / 4) * 2, (height / 4) * 3, width, height, &pixelColour, cam, &finishedThreads, &t3, &bvh);
+			std::thread thread4 = std::thread(threadOver, samps, (height / 4) * 3, height, width, height, &pixelColour, cam, &finishedThreads, &t4, &bvh);
+
+			while(finishedThreads < 4)
+			{
+				std::cout << "\rComplete thr: " << finishedThreads;
+				std::cout << "\tThr 1: " + t1;
+				std::cout << "\tThr 2: " + t2;
+				std::cout << "\tThr 3: " + t3;
+				std::cout << "\tThr 4: " + t4;
+			}
+
+			//Added as a precaution
+			thread.join();
+			thread2.join();
+			thread3.join();
+			thread4.join();
+		}
+		
 	}
 	else
 	{
@@ -565,6 +604,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+
 
 	std::ofstream output("output.ppm");
 	output << "P3\n" << width << '\n' << height << '\n' << "255\n";

@@ -115,7 +115,7 @@ public:
 		}
 	};
 
-
+	//Source: scratchapixel.
 	double intersect(const Ray& r) const override
 	{
 		Vector3 v0v1 = vertB.pos - vertA.pos;
@@ -133,7 +133,7 @@ public:
  
 		Vector3 tvec = r.GetOrigin() - vertA.pos;
 		double u = tvec.dot(pvec) * invDet; 
-		if (u < 0 || u > 1) 
+		if (u < 0.0 || u > 1.0) 
 			return 0.0; 
  
 		Vector3 qvec = tvec.cross(v0v1);

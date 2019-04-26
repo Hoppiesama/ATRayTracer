@@ -104,6 +104,8 @@ bool ObjectImporter::Import(std::string _fileName, Model* _object )
 	vertexTextureUV.clear();
 	vertexNormals.clear();
 
+	inFile.close();
+
 	return true;
 }
 

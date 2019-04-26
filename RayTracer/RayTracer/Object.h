@@ -5,7 +5,7 @@
 enum ObjType
 {
 	Sph,
-	Mod,
+	Mesh,
 };
 
 class Object

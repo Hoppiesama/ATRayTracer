@@ -1,4 +1,4 @@
-// project based on smallpt, a Path Tracer by Kevin Beason, 2008. http://www.kevinbeason.com/smallpt/
+// project based on smallPT, a Path Tracer by Kevin Beason, 2008. http://www.kevinbeason.com/smallpt/
 
 #include <math.h>  
 #include <stdlib.h> 
@@ -31,10 +31,6 @@ double erand48(unsigned short xSubI[3])
 	return (double)rand() / (double)RAND_MAX;
 }
 #pragma endregion
-
-
-//TODO - Create Material Class and simply the radiance calls to only calculate diffuse. Keep it simple for week 2.
-//TODO - Create/modify the "light" class and maybe implement "shadow" rays to get that stage done.
 
 
 Sphere spheres[] = 
@@ -122,7 +118,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	{
 		normal = (hitPoint - hitObj->position).normalize();
 	}
-	else if(hitObj->type == Mod)
+	else if(hitObj->type == Mesh)
 	{
 		//Triangle* temp = dynamic_cast<Triangle>(*hitObj);
 		Triangle* triangleObj = dynamic_cast<Triangle*>(hitObj);
@@ -166,7 +162,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		}
 		else
 		{
-			return hitObj->material.GetEmission(); //R.R. 
+			return hitObj->material.GetEmission();
 		}
 	}
 
@@ -175,7 +171,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		// Ideal DIFFUSE reflection 
 		double r1 = 2 * M_PI*erand48(xSubi);
 		double r2 = erand48(xSubi);
-		double r2s = sqrt(r2);
+		double r2sqrRooted = sqrt(r2);
 
 		Vector3 w = nl;
 		Vector3 u;
@@ -193,10 +189,10 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		Vector3 v = w.cross(u); // % = cross
 
-		// TOM!!! - is this an implementation of the monte carlo thing?
+
 		//New direction randomised slightly due to diffuse colour.
 		// u * cos(randomNo betwen 0 and 2Pi) + v * sin(same randomNo between 0 and 2Pi) + w * sqrt(1 - randomNo between 0.0 & 1.0) . normalized
-		Vector3 newDirection = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).normalize();
+		Vector3 newDirection = (u * cos(r1) * r2sqrRooted + v * sin(r1) * r2sqrRooted + w * sqrt(1 - r2)).normalize();
 
 		Ray ray(hitPoint, newDirection);
 
@@ -299,8 +295,6 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	double probabilityOfRefracting = fresnelReflectance / probabilityOfReflecting;
 	double TP = Tr / (1 - probabilityOfReflecting);
 
-
-
 	if(depth > 2)
 	{
 		if(erand48(xSubi) < probabilityOfReflecting)
@@ -338,21 +332,18 @@ void threadOver2(int samples, int yStart, int yEnd, int xStart, int xEnd, int wi
 
 	Vector3 r;
 
-	for(int y = yStart; y<yEnd; y++)
+	for(unsigned int y = yStart; y<yEnd; y++)
 	{                       // Loop over image rows 
 		unsigned short Xi[3] = { 0,0, y*y*y };
 
-		for(int x = xStart; x < xEnd; x++) // Loop cols 
+		for(unsigned int x = xStart; x < xEnd; x++) // Loop cols 
 		{
 			int i = (height - y - 1)* width + x;
 
-			//TODO - remove sub-pixel sampling.
-			//TODO - remove multi-sampling.
 
 			int result1 = (int)(((double)(y - yStart) / (double)(yEnd - yStart) * 100));
 			int result2 = (int)(((double)(x - xStart) / (double)(xEnd - xStart) * 100));
 
-			(*_string) = std::to_string(result1) + "." + std::to_string(result2);
 
 			for(int subPixelY = 0; subPixelY < 2; subPixelY++)     // 2x2 subpixel rows 
 			{
@@ -379,6 +370,11 @@ void threadOver2(int samples, int yStart, int yEnd, int xStart, int xEnd, int wi
 						_bvh->intersectTree(ray, _bvh->thisNode.get(), objectsHit);
 
 						r = r + radiance(Ray(_cam.position, direction.normalize()), 0, Xi, objectsHit, _bvh) * (1. / samples);
+					}
+					//This is used as a means of testing the project, assigning the int allows a break in visual studio.
+					if(i == 307200)
+					{
+						int problem = 0;
 					}
 					(pixelColour)->at(i) = (pixelColour)->at(i) + Vector3(clamp(r.x), clamp(r.y), clamp(r.z))*.25;
 				}
@@ -451,14 +447,16 @@ void threadOver(int samples, int yStart, int yEnd, int width, int height, std::v
 
 int main(int argc, char *argv[])
 {
-	int width = 640, height = 480, samps = argc == 2 ? atoi(argv[1]) / 4 : 1; // # samples 
+	int width = 1920;
+	int height = 1080;
+	int samps = argc == 2 ? atoi(argv[1]) / 4 : 1;
 
 	BoundingVolumeHierarchy bvh;
 	ObjectImporter importer;
 	std::vector<Object*> objectsVector;
 
 
-	//TODO -remove the hard coded spheres array and use a vector so we can "get size" here and scale it
+	//TODO - remove the hard coded spheres array and use a vector so we can "get size" here and scale it
 	for(int i = 0; i <12; i++)
 	{
 		objectsVector.push_back(&spheres[i]);
@@ -468,7 +466,7 @@ int main(int argc, char *argv[])
 	testObj.material.SetDiffuseColour(Vector3(.25,.75,.75)) ;
 	testObj.material.SetSurface(SurfaceType::SPEC_REFLECTION);
 	testObj.material.SetEmission(Vector3());
-	testObj.type = Mod;
+	testObj.type = Mesh;
 	fprintf(stderr, "\rImporting Models...\n");
 	importer.Import("Samoyed.obj", &testObj);
 	testObj.InitTriangles();
@@ -483,7 +481,7 @@ int main(int argc, char *argv[])
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
 	fprintf(stderr, "\BVH Complete...\n");
 
-	samps = 8; //override sample!
+	samps = 128; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
@@ -499,9 +497,6 @@ int main(int argc, char *argv[])
 	{
 		height++;
 	}
-
-	//Testing threadpool.
-	ThreadPool threadPool(7);
 
 	bool threaded = true;
 	bool threadPooled = true;
@@ -527,6 +522,9 @@ int main(int argc, char *argv[])
 
 		if(threadPooled)
 		{
+			//Testing threadpool.
+			ThreadPool threadPool(7);
+
 			int taskCounter = 0;
 
 			for(int y = 0; y < height; y += 16)
@@ -534,56 +532,21 @@ int main(int argc, char *argv[])
 				for(int x = 0; x < width; x += 16)
 				{
 
-					ThreadTask task(samps, y, y + 16, x, x+16, width, height, &pixelColour, &cam, &finishedThreads, &t0, &bvh);
+					ThreadTask task(samps, y, y + 16, x, x + 16, width, height, &pixelColour, &cam, &finishedThreads, &t0, &bvh);
 					task.taskFunction2 = &threadOver2;
 					threadPool.enqueue(task);
 					taskCounter++;
 				}
 			}
 
-			//std::cout << "Tasks to complete: " + taskCounter << std::endl;
-
 			fprintf(stderr, "\rWidth: %d \n", width);
 			fprintf(stderr, "\rHeight: %d \n", height);
 
 			fprintf(stderr, "\rTasks to complete: %d \n\n", taskCounter);
 
-			/*
-			//ThreadTask task(samps, 0, height / 4, width, height, &pixelColour, &cam, &finishedThreads, &t1, &bvh);
-			//task.foo = &threadOver;
-
-			//ThreadTask task2(samps, (int)(height / 4), (int)((height / 4) * 2), width, height, &pixelColour, &cam, &finishedThreads, &t2, &bvh);
-			//task2.foo = &threadOver;
-
-			//ThreadTask task3(samps, (int)((height / 4) * 2), (int)((height / 4) * 3), width, height, &pixelColour, &cam, &finishedThreads, &t3, &bvh);
-			//task3.foo = &threadOver;
-
-			//ThreadTask task4(samps, (int)((height / 4) * 3), height, width, height, &pixelColour, &cam, &finishedThreads, &t4, &bvh);
-			//task4.foo = &threadOver;
-
-			//threadPool.enqueue(task);
-			//threadPool.enqueue(task2);
-			//threadPool.enqueue(task3);
-			//threadPool.enqueue(task4);
-
-			//while(finishedThreads < 4)
-			//{
-			//	std::cout << "\rComplete thr: " << finishedThreads;
-			//	std::cout << "\tThr 1: " + t1;
-			//	std::cout << "\tThr 2: " + t2;
-			//	std::cout << "\tThr 3: " + t3;
-			//	std::cout << "\tThr 4: " + t4;
-			//}
-			*/
-
 			while(!threadPool.IsQueueEmpty())
 			{
-				//std::cout << "\rComplete thr: " << finishedThreads;
-				//std::cout << " Percentage complete: " << (float)((int)finishedThreads / taskCounter);
 				int temp = (int)finishedThreads;
-
-			//	100.*y / (height - 1)
-
 				fprintf(stderr, "\rComplete thr: %d Percentage Complete: %5.2f%%", temp, (  ( (float)temp / (float)taskCounter) ) * 100.f );
 			}
 		}
@@ -609,7 +572,6 @@ int main(int argc, char *argv[])
 			thread3.join();
 			thread4.join();
 		}
-		
 	}
 	else
 	{
@@ -709,7 +671,6 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-
 
 	std::ofstream output("output.ppm");
 	output << "P3\n" << width << '\n' << height << '\n' << "255\n";

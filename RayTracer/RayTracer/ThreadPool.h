@@ -64,6 +64,8 @@ struct ThreadTask
 	void(*taskFunction2) (int samples, int yStart, int yEnd, int xStart, int xEnd, int width, int height, std::vector<Vector3>* pixelColour, Camera cam, std::atomic<int>* counter, std::string* string, BoundingVolumeHierarchy* bvh);
 };
 
+//Thread pool is based on this implementation, adapted to my purpose https://youtu.be/eWTGtp3HXiw
+
 class ThreadPool
 {
 public:
@@ -77,6 +79,8 @@ public:
 	~ThreadPool();
 
 	void enqueue(Task _task);
+
+	void CallForStop() { stop(); }
 
 	bool GetCompleted() { return complete; }
 

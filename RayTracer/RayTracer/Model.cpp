@@ -23,7 +23,7 @@ void Model::InitTriangles()
 	for(int a = 0; a < faceIndex.size(); a++)
 	{
 		//triangles.push_back(&Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]));
-		triangles.push_back(Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]]));
+		triangles.push_back(Triangle(vertices[indices[incrementor]], vertices[indices[incrementor + 1]], vertices[indices[incrementor + 2]], *material));
 		triangles.back().material = this->material;
 		triangles.back().position = position;
 		triangles.back().offsetPositions();
@@ -35,7 +35,7 @@ void Model::InitTriangles()
 
 // Source: https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
 
-double Model::intersect(const Ray& r) const
+double Model::intersect(const Ray& r, double& _uvU, double& _uvV) const
 {
 	// compute plane's normal
 

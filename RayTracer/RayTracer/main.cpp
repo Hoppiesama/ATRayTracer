@@ -79,14 +79,14 @@ inline int toGammaCorrectedInt(double x)
 }
 
 
-inline bool intersect(const Ray &r, double &t, int &vectorIndex, std::vector<Object*> objects)
+inline bool intersect(const Ray &r, double &t, int &vectorIndex, std::vector<Object*> objects, double& _uvU, double& _uvV)
 {
 	double d;
 	double inf = t = DBL_MAX;
 
 	for(int i = (int)objects.size() - 1; i >= 0; i--)
 	{
-		d = objects.at(i)->intersect(r);
+		d = objects.at(i)->intersect(r, _uvU, _uvV);
 
 		if(d < t && d != 0.0)
 		{ 
@@ -102,9 +102,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	double t;                   // distance to intersection 
 	int id = 0;					// id of intersected object 
 
-	if(!intersect(r, t, id, objects))
+	double uvU = 0.0, uvV = 0.0;
+
+	if(!intersect(r, t, id, objects, uvU, uvV))
 	{
-		return Vector3(0.0, 0.0,0.0); // if miss, return black 
+		return Vector3(0.0, 0.0, 0.0); // if miss, return black 
 	}
 
 	//const Sphere &hitObj = spheres[id];        // the hit object 
@@ -130,11 +132,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 	//Vector3 normal = (hitPoint - hitObj->position).normalize();
 	Vector3 nl = normal.dot(r.GetDirection()) < 0 ? normal : normal * -1;
-	Vector3 objectColour = hitObj->material.GetDiffuseColour();
-
-	//TODO - remove this, it's super simple to test BVH
-	//return hitObj->colour;
-
+	Vector3 objectColour = hitObj->material->GetDiffuseColour();
 
 	double probability;
 	// Get the highest colour value to determine likelihood of continuing in russian roulette.
@@ -162,11 +160,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		}
 		else
 		{
-			return hitObj->material.GetEmission();
+			return hitObj->material->GetEmission();
 		}
 	}
 
-	if(hitObj->material.GetSurface() == DIFFUSE)
+	if(hitObj->material->GetSurface() == DIFFUSE)
 	{                  
 		// Ideal DIFFUSE reflection 
 		double r1 = 2 * M_PI*erand48(xSubi);
@@ -190,7 +188,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		Vector3 v = w.cross(u); // % = cross
 
 
-		//New direction randomised slightly due to diffuse colour.
+		//New direction randomised due to diffuse scatter.
 		// u * cos(randomNo betwen 0 and 2Pi) + v * sin(same randomNo between 0 and 2Pi) + w * sqrt(1 - randomNo between 0.0 & 1.0) . normalized
 		Vector3 newDirection = (u * cos(r1) * r2sqrRooted + v * sin(r1) * r2sqrRooted + w * sqrt(1 - r2)).normalize();
 
@@ -200,9 +198,14 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		bvh->intersectTree(ray, bvh->thisNode.get(), objects);
 
-		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
+		// hit 
+		if(hitObj->material->getIsTextured() == true)
+		{
+			objectColour = hitObj->material->GetTexture().GetPixel(uvU, uvV);
+		}
+		return hitObj->material->GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
-	else if(hitObj->material.GetSurface() == SPEC_REFLECTION)            // Ideal SPECULAR reflection 
+	else if(hitObj->material->GetSurface() == SPEC_REFLECTION)            // Ideal SPECULAR reflection 
 	{
 
 		Vector3 newDirection = r.GetDirection() - normal * 2 * normal.dot(r.GetDirection());
@@ -215,7 +218,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		//r.GetDirection() - normal * 2 * normal.dot(r.GetDirection()) is a mirrored angle from the normal, e.g. angle of incidence and angle of reflection from the normal are the same.
 		//based on the idea shown here https://youtu.be/ytRrjf9OPHg?t=1031 ...
-		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
+		if(hitObj->material->getIsTextured() == true)
+		{
+			objectColour = hitObj->material->GetTexture().GetPixel(uvU, uvV);
+		}
+		return hitObj->material->GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh));
 	}
 
 	//dielectric REFRACTION 
@@ -231,11 +238,11 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	//If going in, we calculate the change in angle due to the refraction. If coming out, it's inverted back.
 	if(into)
 	{
-		nnt = airRefractionIndex / hitObj->material.GetIndexOfRefraction(); // == 1/1.5 == 0.666666
+		nnt = airRefractionIndex / hitObj->material->GetIndexOfRefraction(); // == 1/1.5 == 0.666666
 	}
 	else
 	{
-		nnt = hitObj->material.GetIndexOfRefraction() / airRefractionIndex;  // == 1.5/1 == 1.5
+		nnt = hitObj->material->GetIndexOfRefraction() / airRefractionIndex;  // == 1.5/1 == 1.5
 	}
 
 
@@ -259,7 +266,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	{
 		objects.clear();
 		bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
-		return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh));
+		return hitObj->material->GetEmission() + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh));
 	}
 		
 	Vector3 tdir;
@@ -275,8 +282,8 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	}
 	tdir.normalize();
 
-	double a = hitObj->material.GetIndexOfRefraction() - airRefractionIndex; // == 1.5 - 1 == 0.5
-	double b = hitObj->material.GetIndexOfRefraction() + airRefractionIndex; // == 1.5 + 1 = 2.5
+	double a = hitObj->material->GetIndexOfRefraction() - airRefractionIndex; // == 1.5 - 1 == 0.5
+	double b = hitObj->material->GetIndexOfRefraction() + airRefractionIndex; // == 1.5 + 1 = 2.5
 	double reflectanceAtNormalIncidence = (a * a) / (b*b); // == 0.5^2 / (b^2)
 
 	double c;	// c = 1 - cos(theta)
@@ -302,7 +309,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 			objects.clear();
 			bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
 
-			return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh)*probabilityOfRefracting);
+			return hitObj->material->GetEmission() + objectColour.multiplyBy(radiance(reflRay, depth, xSubi, objects, bvh)*probabilityOfRefracting);
 		}
 		else
 		{
@@ -310,7 +317,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 			objects.clear();
 			bvh->intersectTree(ray, bvh->thisNode.get(), objects);
 
-			return hitObj->material.GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh)*TP);
+			return hitObj->material->GetEmission() + objectColour.multiplyBy(radiance(ray, depth, xSubi, objects, bvh)*TP);
 		}
 	}
 	else
@@ -320,7 +327,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		objects.clear();
 		bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
 		bvh->intersectTree(ray2, bvh->thisNode.get(), objects);
-		return hitObj->material.GetEmission() + objectColour.multiplyBy((radiance(reflRay, depth, xSubi, objects, bvh) * fresnelReflectance + radiance(ray2, depth, xSubi, objects, bvh)*Tr) );
+		return hitObj->material->GetEmission() + objectColour.multiplyBy((radiance(reflRay, depth, xSubi, objects, bvh) * fresnelReflectance + radiance(ray2, depth, xSubi, objects, bvh)*Tr) );
 	}
 }
 
@@ -447,8 +454,8 @@ void threadOver(int samples, int yStart, int yEnd, int width, int height, std::v
 
 int main(int argc, char *argv[])
 {
-	int width = 1920;
-	int height = 1080;
+	int width = 480;
+	int height = 320;
 	int samps = argc == 2 ? atoi(argv[1]) / 4 : 1;
 
 	BoundingVolumeHierarchy bvh;
@@ -462,11 +469,12 @@ int main(int argc, char *argv[])
 		objectsVector.push_back(&spheres[i]);
 	}
 
+
+	//Create and import a polygon model.
 	Model testObj({ 0.0, 0.0, -20.0 });
-	testObj.material.SetDiffuseColour(Vector3(.25,.75,.75)) ;
-	testObj.material.SetSurface(SurfaceType::SPEC_REFLECTION);
-	testObj.material.SetEmission(Vector3());
+	testObj.material = new Material(Vector3(.25, .75, .75), Vector3(), SurfaceType::DIFFUSE);
 	testObj.type = Mesh;
+	testObj.material->initTextureFromFile("Samoyed_dif.jpg");
 	fprintf(stderr, "\rImporting Models...\n");
 	importer.Import("Samoyed.obj", &testObj);
 	testObj.InitTriangles();
@@ -481,7 +489,7 @@ int main(int argc, char *argv[])
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
 	fprintf(stderr, "\BVH Complete...\n");
 
-	samps = 128; //override sample!
+	samps = 20; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;

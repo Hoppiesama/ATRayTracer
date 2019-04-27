@@ -7,9 +7,10 @@
 class Triangle : public Object
 {
 public:
-	Triangle(Vertex3 _A, Vertex3 _B, Vertex3 _C)
+	Triangle(Vertex3 _A, Vertex3 _B, Vertex3 _C, Material& _material)
 		: vertA(_A), vertB(_B), vertC(_C)
 	{
+		material = &_material;
 	}
 	~Triangle() = default;
 
@@ -116,7 +117,7 @@ public:
 	};
 
 	//Source: scratchapixel.
-	double intersect(const Ray& r) const override
+	double intersect(const Ray& r, double& _uvU, double& _uvV) const override
 	{
 		Vector3 v0v1 = vertB.pos - vertA.pos;
 		Vector3 v0v2 = vertC.pos - vertA.pos;
@@ -140,8 +141,15 @@ public:
 		double v = r.GetDirection().dot(qvec) * invDet;
 		if (v < 0 || u + v > 1) return 0.0; 
  
+
+		Vector3 uvHit = vertA.texCoord * u + vertB.texCoord * v + vertC.texCoord * (1 - u - v);
+
+		_uvU = uvHit.x;
+		_uvV = uvHit.y;
+
 		double t = v0v2.dot(qvec) * invDet;
  
+
 		if(t > DBL_EPSILON) // ray intersection
 		{
 			return t;
@@ -150,9 +158,7 @@ public:
 		{
 			return 0.0;
 		}
-
 	}
-
 };
 
 class Model : public Object
@@ -161,16 +167,16 @@ class Model : public Object
 public:
 	Model(Vector3 _position);
 
-	Model(std::vector<Vertex3> _verts, std::vector<int> _indices, std::vector<int> _faceIndices, Material _mat)
+	Model(std::vector<Vertex3> _verts, std::vector<int> _indices, std::vector<int> _faceIndices, Material& _mat)
 		: indices(_indices), vertices(_verts), faceIndex(_faceIndices)
 	{
 		int incrementor = 0;
 
-		material = _mat;
+		material = &_mat;
 
 		for(int a = 0; a < faceIndex.size(); a++)
 		{
-			triangles.push_back(Triangle(vertices[indices[incrementor] - 1], vertices[indices[incrementor + 1] - 1], vertices[indices[incrementor + 2] - 1]) ) ;
+			triangles.push_back(Triangle(vertices[indices[incrementor] - 1], vertices[indices[incrementor + 1] - 1], vertices[indices[incrementor + 2] - 1], _mat) ) ;
 			triangles.back().material = material;
 			triangles.back().position = { 0.0,0.0,0.0 };
 			incrementor += faceIndex[a];
@@ -190,8 +196,9 @@ public:
 	std::vector<Triangle> triangles;
 
 	// Source: https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
-	double intersect(const Ray& r) const override;
+	double intersect(const Ray& r, double& _uvU, double& _uvV) const override;
 
+	//TODO - locaBVH implementation, to speed up checking complex models?
 	BoundingVolumeHierarchy localBVH;
 
 private:

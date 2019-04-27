@@ -17,14 +17,12 @@ public:
 	Sphere(double rad_, Vector3 p_, Vector3 e_, Vector3 c_, SurfaceType refl_, double _indexOfRefraction) 
 	{
 		radius = rad_;
-		material.SetSurface(refl_);
-		material.SetEmission(e_);
-		material.SetDiffuseColour(c_);
+		material = new Material(c_, e_, refl_);
 		position = p_;
-		material.SetIndexOfRefraction(_indexOfRefraction);
+		material->SetIndexOfRefraction(_indexOfRefraction);
 	}
 
-	double intersect(const Ray &r) const override;
+	double intersect(const Ray &r, double& _uvU, double& _uvV) const override;
 
 
 	double GetLowestXVert() { return position.x - radius; }

@@ -1,6 +1,6 @@
 #include "Sphere.h"
 
-double Sphere::intersect(const Ray & r) const
+double Sphere::intersect(const Ray & r, double& _uvU, double& _uvV) const
 {
 	// returns distance, 0 if nohit 
 	Vector3 originToPositionDirection = position - r.GetOrigin(); // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0 

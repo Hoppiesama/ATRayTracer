@@ -17,11 +17,11 @@ public:
 
 	Vector3 position;
 
-	Material material;
+	Material* material = nullptr;
 
 	ObjType type = Sph;
 
-	virtual double intersect(const Ray &r) const = 0;
+	virtual double intersect(const Ray &r, double& uvU, double& uvV) const = 0;
 
 	virtual double GetLowestXVert() = 0;
 	virtual double GetHighestXVert() = 0;
@@ -60,7 +60,7 @@ private:
 //	else if(hitObj->type == Mod)
 //	{
 //		//Triangle* temp = dynamic_cast<Triangle>(*hitObj);
-//		Triangle* panim = dynamic_cast<Triangle*>(hitObj);
+	//	Triangle* panim = dynamic_cast<Triangle*>(hitObj);
 //
 //		Vector3 v0v1 = panim->vertB.pos - panim->vertA.pos;
 //		Vector3 v0v2 = panim->vertC.pos - panim->vertA.pos;

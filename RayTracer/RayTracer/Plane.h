@@ -8,6 +8,6 @@ public:
 	~Plane();
 
 	//TODO implement plane intersection
-	double intersect(const Ray &r) const override { return 1.0; }
+	double intersect(const Ray &r, double& _uvU, double& _uvV) const override { return 1.0; }
 };
 

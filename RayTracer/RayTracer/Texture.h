@@ -11,7 +11,10 @@ public:
 
 	void loadTexture(std::string _fileName)
 	{
-		textureData.loadFromFile(_fileName);
+		if(!textureData.loadFromFile(_fileName))
+		{
+			// error...
+		}
 	}
 
 	//TODO - confirm this can work

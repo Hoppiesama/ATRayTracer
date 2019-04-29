@@ -13,6 +13,7 @@
 #include "BoundingVolumeHierarchy.h"
 #include "ObjectImporter.h"
 #include "ThreadPool.h"
+#include <chrono>
 
 #include <thread>
 
@@ -48,7 +49,7 @@ Sphere spheres[] =
 	Sphere(16.5,Vector3(-23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, SPEC_REFLECTION, 1.0),//Mirr 
 	Sphere(16.5,Vector3(23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, REFRACTION, 1.5),//Glas 
 
-	Sphere(16.5, Vector3(0.0, 12.0, -50),		Vector3(12.0,12.0,12.0),  Vector3(), DIFFUSE, 1.0), //Lite 
+	Sphere(16.5, Vector3(0.0, 36.0, -30),		Vector3(12.0,12.0,12.0),  Vector3(), DIFFUSE, 1.0), //Light 
 
 	Sphere(14,Vector3(16,11.5,-57),       Vector3(),Vector3(.75,.5,.25)*.999, REFRACTION, 1.5),//glass 
 	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.66,.66)*.999, DIFFUSE, 1.0),//matte 
@@ -454,6 +455,10 @@ void threadOver(int samples, int yStart, int yEnd, int width, int height, std::v
 
 int main(int argc, char *argv[])
 {
+	auto start = std::chrono::steady_clock::now();
+
+
+
 	int width = 480;
 	int height = 320;
 	int samps = argc == 2 ? atoi(argv[1]) / 4 : 1;
@@ -474,7 +479,7 @@ int main(int argc, char *argv[])
 	Model testObj({ 0.0, 0.0, -20.0 });
 	testObj.material = new Material(Vector3(.25, .75, .75), Vector3(), SurfaceType::DIFFUSE);
 	testObj.type = Mesh;
-	testObj.material->initTextureFromFile("Samoyed_dif.jpg");
+	testObj.material->initTextureFromFile("SamoyedDif.jpg");
 	fprintf(stderr, "\rImporting Models...\n");
 	importer.Import("Samoyed.obj", &testObj);
 	testObj.InitTriangles();
@@ -489,7 +494,7 @@ int main(int argc, char *argv[])
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
 	fprintf(stderr, "\BVH Complete...\n");
 
-	samps = 20; //override sample!
+	samps = 128; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
@@ -686,5 +691,12 @@ int main(int argc, char *argv[])
 	{
 		output << toGammaCorrectedInt(pixelColour[i].x) << " " << toGammaCorrectedInt(pixelColour[i].y) << " " << toGammaCorrectedInt(pixelColour[i].z) << std::endl;
 	}
+
+
+	auto end = std::chrono::steady_clock::now();
+
+	std::cout << "Time Taken: " << std::chrono::duration_cast<std::chrono::seconds> (end - start).count() << std::endl;
+
+	system("pause");
 }
 

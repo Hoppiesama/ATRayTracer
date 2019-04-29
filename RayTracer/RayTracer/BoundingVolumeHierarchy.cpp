@@ -168,6 +168,11 @@ std::pair<std::vector<Object*>, std::vector<Object*>> BoundingVolumeHierarchy::s
 		permutationsLeft = 0;
 	}
 
+	//Do for loop over objects
+
+	//getting each split permutation from 1 - 9, 2-8, 3-7 etc.
+	//track best cost as (i * leftGroup.Area() ) + (objectsList.size() - i) * rightGroup.Area() )) DIVIDED BY parent area. 
+
 	std::vector<Object*> leftOfSplit = GetObjectsUpToIndex(objects, permutationsLeft);
 	std::vector<Object*> rightOfSplit = GetObjectsFromIndexToEnd(objects, permutationsLeft);
 
@@ -196,8 +201,10 @@ double BoundingVolumeHierarchy::calculateCombinedSurfaceAreas(BoundingBox boxLef
 
 	Vector3 extentsParent = thisNode->boundingBox.GetExtents();
 
+
 	double surfAreaA = 2 * (extentsA.x * extentsA.y) + 2 * (extentsA.x * extentsA.z) + 2 * (extentsA.y * extentsA.z);
 	double surfAreaB = 2 * (extentsB.x * extentsB.y) + 2 * (extentsB.x * extentsB.z) + 2 * (extentsB.y * extentsB.z);
+
 	double surfAreaParent = 2 * (extentsParent.x * extentsParent.y) + 2 * (extentsParent.x * extentsParent.z) + 2 * (extentsParent.y * extentsParent.z);
 
 	return objectTraversalCost + (surfAreaA / surfAreaParent) * nodeTraversalCost + (surfAreaB / surfAreaParent) * nodeTraversalCost;

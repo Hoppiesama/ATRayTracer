@@ -37,24 +37,22 @@ double erand48(unsigned short xSubI[3])
 Sphere spheres[] = 
 {
 	//Scene: radius, position, emission, color, material 
-	Sphere(1e5, Vector3(1e5 - 60 ,40.8,81.6), Vector3(),Vector3(.75,.25,.25),DIFFUSE, 1.0),//Left 
-	Sphere(1e5, Vector3(-1e5 + 60,40.8,81.6),Vector3(),Vector3(.25,.25,.75),DIFFUSE, 1.0),//Rght 
-	//Sphere(1e5, Vector3(50 - 50,40.8, 1e5),     Vector3(),Vector3(.75,.75,.75),DIFF),//Back 
-	Sphere(1e5, Vector3(0,40.8,-1e5 + 60), Vector3(),Vector3(.75,.75,.75), DIFFUSE, 1.0),//Frnt 
-
-
-
+	Sphere(1e5, Vector3(1e5 - 90 ,40.8,100.0), Vector3(),Vector3(.75,.25,.25),DIFFUSE, 1.0),//Left 
+	Sphere(1e5, Vector3(-1e5 + 90,40.8,100.0),Vector3(),Vector3(.25,.25,.75),DIFFUSE, 1.0),//Rght 
+	Sphere(1e5, Vector3(50 - 50,40.8, 1e5 - 120.0),     Vector3(),Vector3(.75,.75,.75),DIFFUSE, 1.0),//Back 
+	Sphere(1e5, Vector3(0,40.8,-1e5 + 120.0), Vector3(),Vector3(.75,.75,.75), DIFFUSE, 1.0),//Frnt 
 	Sphere(1e5, Vector3(0, -1e5 - 60, 0),    Vector3(),Vector3(.75,.75,.75),DIFFUSE,1.0),//Botm 
 	Sphere(1e5, Vector3(0.0, 1e5 + 60,0),	Vector3(),Vector3(.75,.75,.75),DIFFUSE, 1.0),//Top 
-	Sphere(16.5,Vector3(-23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, SPEC_REFLECTION, 1.0),//Mirr 
-	Sphere(16.5,Vector3(23,16.5,47),       Vector3(),Vector3(.9,.9,.9)*.999, REFRACTION, 1.5),//Glas 
 
-	Sphere(16.5, Vector3(0.0, 36.0, -30),		Vector3(12.0,12.0,12.0),  Vector3(), DIFFUSE, 1.0), //Light 
+	Sphere(16.5, Vector3(0.0, 56.0, -30),		Vector3(8.0,12.0,12.0),  Vector3(), DIFFUSE, 1.0), //Light 
 
-	Sphere(14,Vector3(16,11.5,-57),       Vector3(),Vector3(.75,.5,.25)*.999, REFRACTION, 1.5),//glass 
-	Sphere(16.5,Vector3(24,6.5,-2),       Vector3(),Vector3(.75,.66,.66)*.999, DIFFUSE, 1.0),//matte 
-	Sphere(14,Vector3(-16,11.5,-57),       Vector3(),Vector3(.5,.25,.25)*.999, REFRACTION, 1.5),//glass 
-	Sphere(16.5,Vector3(-24 ,22,-2),       Vector3(),Vector3(.75,.25,.25)*.999, DIFFUSE, 1.0),//matte 
+
+	Sphere(16.5,Vector3(-23, -20.0,  47),       Vector3(),Vector3(.9,.9,.9)*.999, REFRACTION, 1.5),//Glas 
+	Sphere(16.5,Vector3(23,  -20.0,  47),       Vector3(),Vector3(.9,.9,.9)*.999, REFRACTION, 1.5),//Glas 
+
+
+	Sphere(14,Vector3(16,-20.0,-57),       Vector3(),Vector3(.75,.5,.25), SPEC_REFLECTION, 1.5),//glass 
+	Sphere(14,Vector3(-16,-20.0,-57),       Vector3(),Vector3(.5,.25,.25), SPEC_REFLECTION, 1.5),//glass 
 };
 
 inline double clamp(double x) 
@@ -128,10 +126,10 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 
 		Vector3 v0v1 = triangleObj->vertB.pos - triangleObj->vertA.pos;
 		Vector3 v0v2 = triangleObj->vertC.pos - triangleObj->vertA.pos;
-		normal = v0v1.cross(v0v2).normalize(); // N 
+		normal = v0v1.cross(v0v2).normalize();
 	}
 
-	//Vector3 normal = (hitPoint - hitObj->position).normalize();
+	//Determine angle between ray and normal, if above 0, invert it.
 	Vector3 nl = normal.dot(r.GetDirection()) < 0 ? normal : normal * -1;
 	Vector3 objectColour = hitObj->material->GetDiffuseColour();
 
@@ -175,7 +173,6 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		Vector3 w = nl;
 		Vector3 u;
 
-		//I THINK this is for determining whether a surface deflects light or not
 		if(fabs(w.x) > 0.1)
 		{
 			u = Vector3(0, 1, 0).cross(w);
@@ -273,12 +270,10 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 	Vector3 tdir;
 	if(into)
 	{
-		//fresnel term?
 		tdir = r.GetDirection()*nnt - normal * ( 1 *(rayDirectionDotNormal*nnt + sqrt(cosine2Theta)));
 	}
 	else
 	{
-		//fresnel term?
 		tdir = r.GetDirection()*nnt - normal * ( -1 * (rayDirectionDotNormal*nnt + sqrt(cosine2Theta)));
 	}
 	tdir.normalize();
@@ -297,14 +292,15 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		c = tdir.dot(normal);
 	}
 
-	double fresnelReflectance = reflectanceAtNormalIncidence + (1 - reflectanceAtNormalIncidence)*c*c*c*c*c;
+	double fresnelReflectance = reflectanceAtNormalIncidence + (1.0 - reflectanceAtNormalIncidence)*c*c*c*c*c;
 	double Tr = 1 - fresnelReflectance;
-	double probabilityOfReflecting = .25 + .5*fresnelReflectance;
+	double probabilityOfReflecting = 0.5 * fresnelReflectance + 0.25;
 	double probabilityOfRefracting = fresnelReflectance / probabilityOfReflecting;
 	double TP = Tr / (1 - probabilityOfReflecting);
 
 	if(depth > 2)
 	{
+		//randomly pick to make one recursive call
 		if(erand48(xSubi) < probabilityOfReflecting)
 		{
 			objects.clear();
@@ -328,6 +324,7 @@ Vector3 radiance(const Ray &r, int depth, unsigned short *xSubi, std::vector<Obj
 		objects.clear();
 		bvh->intersectTree(reflRay, bvh->thisNode.get(), objects);
 		bvh->intersectTree(ray2, bvh->thisNode.get(), objects);
+		//Make 2 recursive calls to radiance, for both reflectance and refraction
 		return hitObj->material->GetEmission() + objectColour.multiplyBy((radiance(reflRay, depth, xSubi, objects, bvh) * fresnelReflectance + radiance(ray2, depth, xSubi, objects, bvh)*Tr) );
 	}
 }
@@ -457,8 +454,6 @@ int main(int argc, char *argv[])
 {
 	auto start = std::chrono::steady_clock::now();
 
-
-
 	int width = 480;
 	int height = 320;
 	int samps = argc == 2 ? atoi(argv[1]) / 4 : 1;
@@ -469,38 +464,66 @@ int main(int argc, char *argv[])
 
 
 	//TODO - remove the hard coded spheres array and use a vector so we can "get size" here and scale it
-	for(int i = 0; i <12; i++)
+	for(int i = 0; i <10; i++)
 	{
 		objectsVector.push_back(&spheres[i]);
 	}
 
 
 	//Create and import a polygon model.
-	Model testObj({ 0.0, 0.0, -20.0 });
-	testObj.material = new Material(Vector3(.25, .75, .75), Vector3(), SurfaceType::DIFFUSE);
+	Model testObj({ 0.0, -25.0, -10.0 });
+	testObj.material = new Material(Vector3(.25, .75, .33), Vector3(), SurfaceType::REFRACTION, 1.5);
 	testObj.type = Mesh;
-	testObj.material->initTextureFromFile("SamoyedDif.jpg");
+	//testObj.material->initTextureFromFile("SamoyedDif.jpg");
 	fprintf(stderr, "\rImporting Models...\n");
 	importer.Import("Samoyed.obj", &testObj);
 	testObj.InitTriangles();
 
+	Model testObj2({ 35.0, -15.0, -5.0 });
+	testObj2.material = new Material(Vector3(.75, .75, .75), Vector3(), SurfaceType::DIFFUSE, 1.0);
+	testObj2.type = Mesh;
+	testObj.material->initTextureFromFile("SamoyedDif.jpg");
+	fprintf(stderr, "\rImporting Models...\n");
+	importer.Import("Polyhedron.obj", &testObj2);
+	testObj2.InitTriangles();
+
+	Model testObj3({ -45.0, -15.0, -20.0 });
+	testObj3.material = new Material(Vector3(.75, .75, .25), Vector3(), SurfaceType::SPEC_REFLECTION, 1.0);
+	testObj3.type = Mesh;
+	//testObj.material->initTextureFromFile("SamoyedDif.jpg");
+	fprintf(stderr, "\rImporting Models...\n");
+	importer.Import("Polyhedron.obj", &testObj3);
+	testObj3.InitTriangles();
+
 
 	for(int i = 0; i < testObj.getTriangles().size(); i++)
 	{
-		objectsVector.push_back(&testObj.getTriangles().at(i) );
+		objectsVector.push_back(&testObj.getTriangles().at(i));
+	}
+
+	for(int j = 0; j < testObj2.getTriangles().size(); j++)
+	{
+		objectsVector.push_back(&testObj2.getTriangles().at(j));
+	}
+
+	for(int k = 0; k < testObj3.getTriangles().size(); k++)
+	{
+		objectsVector.push_back(&testObj3.getTriangles().at(k));
 	}
 
 	fprintf(stderr, "\rBuilding BVH...\n");
 	bvh.BuildBVH(bvh.thisNode.get(), objectsVector);
 	fprintf(stderr, "\BVH Complete...\n");
 
-	samps = 128; //override sample!
+	samps = 512; //override sample!
 
 	//fixed FOV to be in degrees. modifies the length of the camRight vector by using tan(fov/2)
 	double fov = 90;
 
-	Camera cam(Vector3(0, 52, 50), Vector3(0, 25, 0), width, height, fov); // cam pos, position to look at
+	Camera cam(Vector3(0, 22, 100), Vector3(0, 0, 0), width, height, fov); // cam pos, position to look at
 	
+	std::cout << objectsVector.size();
+
 	while(width % 16 != 0)
 	{
 		width++;

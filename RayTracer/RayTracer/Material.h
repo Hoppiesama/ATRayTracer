@@ -7,8 +7,8 @@ enum SurfaceType { DIFFUSE, SPEC_REFLECTION, REFRACTION };  // material types, u
 class Material
 {
 public:
-	Material(Vector3 _diffColour, Vector3 _emission, SurfaceType _type)
-		: diffuseColour(_diffColour), emission(_emission), surface(_type){};
+	Material(Vector3 _diffColour, Vector3 _emission, SurfaceType _type, double _indexOfRefraction)
+		: diffuseColour(_diffColour), emission(_emission), surface(_type), indexOfRefraction(_indexOfRefraction){};
 	Material() = default;
 
 	~Material() = default;

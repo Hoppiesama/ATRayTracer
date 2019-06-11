@@ -17,9 +17,8 @@ public:
 	Sphere(double rad_, Vector3 p_, Vector3 e_, Vector3 c_, SurfaceType refl_, double _indexOfRefraction) 
 	{
 		radius = rad_;
-		material = new Material(c_, e_, refl_);
+		material = new Material(c_, e_, refl_, _indexOfRefraction);
 		position = p_;
-		material->SetIndexOfRefraction(_indexOfRefraction);
 	}
 
 	double intersect(const Ray &r, double& _uvU, double& _uvV) const override;
